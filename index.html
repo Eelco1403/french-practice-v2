@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pratique française</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <div class="app-title">Pratique française</div>
+  <div class="header-right">
+    <div class="stats-bar">
+      <div class="stat-item">🔥 <span class="stat-num" id="stat-streak">0</span></div>
+      <div class="stat-item">✓ <span class="stat-num" id="stat-correct">0</span></div>
+      <div class="stat-item">✗ <span class="stat-num" id="stat-wrong">0</span></div>
+    </div>
+    <button class="icon-btn active" id="sound-btn" onclick="toggleSound()" title="Toggle sound">🔊</button>
+    <button class="icon-btn" onclick="showDashboard()">Progress</button>
+  </div>
+</header>
+
+<!-- Progress bar -->
+<div class="progress-wrap">
+  <div class="progress-fill" id="prog"></div>
+</div>
+
+<!-- Main -->
+<main class="app-body">
+
+  <!-- Controls -->
+  <div class="controls">
+
+    <!-- Mode tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="setMode('vocab',this)">Vocabulary</button>
+      <button class="mode-tab" onclick="setMode('gender',this)">Gender</button>
+      <button class="mode-tab" onclick="setMode('antonyms',this)">Antonyms</button>
+      <button class="mode-tab" onclick="setMode('conjugation',this)">Conjugation</button>
+    </div>
+
+    <!-- Mode description -->
+    <div class="mode-desc" id="mode-desc">Match each French word to its English translation.</div>
+
+    <!-- Level tabs -->
+    <div class="level-tabs">
+      <button class="level-tab active" onclick="setLevel('A1',this)">Beginner · 5</button>
+      <button class="level-tab" onclick="setLevel('A2',this)">Elementary · 8</button>
+      <button class="level-tab" onclick="setLevel('B1',this)">Intermediate · 12</button>
+      <button class="level-tab" onclick="setLevel('B2',this)">Advanced · 16</button>
+      <button class="level-tab" onclick="setLevel('C1',this)">Expert · 20</button>
+    </div>
+
+    <!-- Topic filter -->
+    <div class="topic-tabs" id="topic-row">
+      <button class="topic-tab active" onclick="setTopic('all',this)">All</button>
+      <button class="topic-tab" onclick="setTopic('everyday',this)">Everyday</button>
+      <button class="topic-tab" onclick="setTopic('food',this)">Food</button>
+      <button class="topic-tab" onclick="setTopic('family',this)">Family</button>
+      <button class="topic-tab" onclick="setTopic('travel',this)">Travel</button>
+      <button class="topic-tab" onclick="setTopic('work',this)">Work</button>
+      <button class="topic-tab" onclick="setTopic('nature',this)">Nature</button>
+      <button class="topic-tab" onclick="setTopic('body',this)">Body</button>
+      <button class="topic-tab" onclick="setTopic('school',this)">School</button>
+      <button class="topic-tab" onclick="setTopic('shopping',this)">Shopping</button>
+      <button class="topic-tab" onclick="setTopic('animals',this)">Animals</button>
+      <button class="topic-tab" onclick="setTopic('home',this)">Home</button>
+    </div>
+
+    <!-- Verb selector (conjugation only) -->
+    <div class="verb-selector" id="verb-selector" style="display:none">
+      <label>Verb:</label>
+      <select class="verb-select" id="verb-select" onchange="setVerb()"></select>
+      <label>Tense:</label>
+      <select class="tense-select" id="tense-select" onchange="setTense()"></select>
+    </div>
+
+  </div>
+
+  <!-- Column labels -->
+  <div class="col-labels">
+    <div class="col-label" id="label-l">FRANÇAIS</div>
+    <div></div>
+    <div class="col-label" id="label-r">ENGLISH</div>
+  </div>
+
+  <!-- Arena -->
+  <div class="arena">
+    <div class="grid" id="grid-l"></div>
+    <div class="divider-col"><div class="divider-line"></div></div>
+    <div class="grid" id="grid-r"></div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="feedback" id="fb"></div>
+
+  <!-- Round end -->
+  <div class="round-end" id="round-end" style="display:none">
+    <div class="round-score" id="round-score"></div>
+    <div class="round-sub" id="round-sub"></div>
+    <button class="next-btn" onclick="nextRound()">Next round →</button>
+  </div>
+
+</main>
+
+<!-- Progress dashboard overlay -->
+<div class="overlay hidden" id="overlay" onclick="hideDashboard()">
+  <div class="dashboard" onclick="event.stopPropagation()">
+    <h2>
+      Progress
+      <button class="close-btn" onclick="hideDashboard()">✕</button>
+    </h2>
+
+    <div class="dash-stats">
+      <div class="dash-stat">
+        <div class="dash-stat-label">Words practiced</div>
+        <div class="dash-stat-value" id="dash-total">0</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-label">Mastered</div>
+        <div class="dash-stat-value" id="dash-mastered">0</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-label">Streak</div>
+        <div class="dash-stat-value" id="dash-streak">0 days</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-label">Due for review</div>
+        <div class="dash-stat-value" id="dash-due">0</div>
+      </div>
+    </div>
+
+    <div class="dash-section-title">BY CATEGORY</div>
+    <div id="cat-breakdown"></div>
+
+    <button class="reset-btn" onclick="resetProgress()">Reset all progress</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
