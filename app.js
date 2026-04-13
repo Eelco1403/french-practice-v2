@@ -34,7 +34,7 @@ function renderProfileScreen() {
     list.innerHTML = '<p class="profile-empty">No profiles yet — create one below.</p>';
   } else {
     list.innerHTML = profiles.map(p =>
-      '<button class="profile-item-btn" onclick="selectProfile(' + JSON.stringify(p.name) + ')">' + p.name + '</button>'
+      '<button class="profile-item-btn" onclick=\'selectProfile(' + JSON.stringify(p.name) + ')\'>' + p.name + '</button>'
     ).join('');
   }
   document.getElementById('add-profile-row').style.display = profiles.length < 4 ? 'flex' : 'none';
