@@ -440,11 +440,14 @@ function nextRound() {
 // ── Sound ─────────────────────────────────────────────────────────────────────
 function speak(text) {
   if (!soundOn || !window.speechSynthesis) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'fr-FR';
-  u.rate = 0.9;
   speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  // Chrome requires a brief pause after cancel() before speak() to avoid freezing
+  setTimeout(() => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'fr-FR';
+    u.rate = 0.9;
+    speechSynthesis.speak(u);
+  }, 50);
 }
 
 function toggleSound() {
@@ -576,6 +579,14 @@ function init() {
   document.getElementById('stat-streak').textContent = getStreak();
 
   populateVerbSelect();
+
+  // Pre-warm Chrome's speech synthesis engine so it's ready before the first
+  // correct match — avoids a 1-5 second freeze on first speak() call in Chrome
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  }
+
   startRound();
 }
 
