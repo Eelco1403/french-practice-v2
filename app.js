@@ -1,70 +1,137 @@
-// ── Data ─────────────────────────────────────────────────────────────────────
-let VOCAB = [];
-let CONJ = {};
-let VERBS = [];
+// ── Database ───────────────────────────────────────────────────────────────────
+// database.js must be loaded before app.js
+/* global database */
+const { VOCAB, CONJUGATIONS, VERBS, GRAMMAR, PHRASES } = database;
+let CONJ = {}; // built in init() from flat CONJUGATIONS array
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let mode = 'vocab';
-let level = 'A1';
-let topic = 'all';
-let currentVerb = 'être';
-let currentTense = 'present';
+// ── Language ───────────────────────────────────────────────────────────────────
+let currentLang = 'en'; // 'en' | 'nl' | 'de'
+const LANG_LABELS = { en: 'ENGLISH', nl: 'DUTCH', de: 'GERMAN' };
 
-let pairs = [];
-let matched = [];
-let wrongTimer = null;
-let selSide = null;
-let selIdx = null;
-let leftItems = [];
-let rightItems = [];
+function getTranslation(item) {
+  return item[currentLang] || item.en;
+}
 
-let sessionCorrect = 0;
-let sessionWrong = 0;
-let sessionRounds = 0;
-let roundMistakes = 0;
+// ── Profiles ───────────────────────────────────────────────────────────────────
+const PROFILES_KEY = 'frenchPractice_profiles';
+let currentProfile = null;
+let profiles = [];
 
-let soundOn = true;
-let usedIds = {};
+function profileKey(base) {
+  return 'frenchPractice_' + currentProfile + '_' + base;
+}
+function loadProfiles() {
+  try { return JSON.parse(localStorage.getItem(PROFILES_KEY) || '[]'); } catch { return []; }
+}
+function saveProfiles(p) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(p)); } catch {}
+}
 
-// ── SM-2 Storage ──────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'frenchPractice_progress';
-const SETTINGS_KEY = 'frenchPractice_settings';
-const STREAK_KEY = 'frenchPractice_streak';
+function renderProfileScreen() {
+  profiles = loadProfiles();
+  const list = document.getElementById('profile-list');
+  if (profiles.length === 0) {
+    list.innerHTML = '<p class="profile-empty">No profiles yet — create one below.</p>';
+  } else {
+    list.innerHTML = profiles.map(p =>
+      '<button class="profile-item-btn" onclick="selectProfile(' + JSON.stringify(p.name) + ')">' + p.name + '</button>'
+    ).join('');
+  }
+  document.getElementById('add-profile-row').style.display = profiles.length < 4 ? 'flex' : 'none';
+  // Show close button only when a profile is already active
+  const closeBtn = document.getElementById('profile-close-btn');
+  if (closeBtn) closeBtn.style.display = currentProfile ? 'inline' : 'none';
+}
 
+function showProfileOverlay() {
+  renderProfileScreen();
+  document.getElementById('profile-overlay').classList.remove('hidden');
+}
+
+function closeProfileOverlay() {
+  if (currentProfile) {
+    document.getElementById('profile-overlay').classList.add('hidden');
+  }
+}
+
+function selectProfile(name) {
+  currentProfile = name;
+  document.getElementById('profile-overlay').classList.add('hidden');
+  document.getElementById('profile-name-display').textContent = name;
+  usedIds = {};
+  sessionCorrect = 0; sessionWrong = 0; sessionRounds = 0;
+  applyProfileSettings();
+  updateStreak();
+  document.getElementById('stat-streak').textContent = getStreak();
+  updateSessionStats();
+  startRound();
+}
+
+function applyProfileSettings() {
+  const s = loadSettings();
+  soundOn = s.sound !== false;
+  currentLang = s.lang || 'en';
+  const btn = document.getElementById('sound-btn');
+  btn.textContent = soundOn ? '🔊' : '🔇';
+  btn.classList.toggle('active', soundOn);
+  document.getElementById('lang-select').value = currentLang;
+}
+
+function addProfile() {
+  const input = document.getElementById('profile-name-input');
+  const name = (input.value || '').trim();
+  if (!name) return;
+  profiles = loadProfiles();
+  if (profiles.length >= 4) return;
+  if (profiles.find(p => p.name === name)) { input.select(); return; }
+  profiles.push({ name });
+  saveProfiles(profiles);
+  input.value = '';
+  renderProfileScreen();
+}
+
+// ── SM-2 Storage (profile-scoped) ──────────────────────────────────────────────
 function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+  if (!currentProfile) return {};
+  try { return JSON.parse(localStorage.getItem(profileKey('progress')) || '{}'); } catch { return {}; }
 }
 function saveProgress(p) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
+  if (!currentProfile) return;
+  try { localStorage.setItem(profileKey('progress'), JSON.stringify(p)); } catch {}
 }
 function loadSettings() {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; }
+  if (!currentProfile) return {};
+  try { return JSON.parse(localStorage.getItem(profileKey('settings')) || '{}'); } catch { return {}; }
 }
 function saveSettings(s) {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {}
+  if (!currentProfile) return;
+  try { localStorage.setItem(profileKey('settings'), JSON.stringify(s)); } catch {}
 }
 
 function updateStreak() {
+  if (!currentProfile) return 0;
   const today = new Date().toISOString().split('T')[0];
   try {
-    const s = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"lastDate":"","streak":0}');
+    const s = JSON.parse(localStorage.getItem(profileKey('streak')) || '{"lastDate":"","streak":0}');
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
     if (s.lastDate === today) return s.streak;
     if (s.lastDate === yesterday) { s.streak++; } else { s.streak = 1; }
     s.lastDate = today;
-    localStorage.setItem(STREAK_KEY, JSON.stringify(s));
+    localStorage.setItem(profileKey('streak'), JSON.stringify(s));
     return s.streak;
   } catch { return 0; }
 }
 
 function getStreak() {
+  if (!currentProfile) return 0;
   try {
-    const s = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"streak":0}');
+    const s = JSON.parse(localStorage.getItem(profileKey('streak')) || '{"streak":0}');
     return s.streak || 0;
   } catch { return 0; }
 }
 
 function sm2Update(id, correct) {
+  if (!currentProfile) return;
   const p = loadProgress();
   const today = new Date().toISOString().split('T')[0];
   const entry = p[id] || { easeFactor: 2.5, interval: 1, repetitions: 0, nextReview: today, correctCount: 0, wrongCount: 0 };
@@ -88,7 +155,7 @@ function sm2Update(id, correct) {
   saveProgress(p);
 }
 
-// ── Antonym pairs ─────────────────────────────────────────────────────────────
+// ── Antonym pairs ──────────────────────────────────────────────────────────────
 const ANTONYMS = [
   {a:'grand',b:'petit'},{a:'chaud',b:'froid'},{a:'rapide',b:'lent'},
   {a:'lourd',b:'léger'},{a:'plein',b:'vide'},{a:'beau',b:'laid'},
@@ -101,10 +168,10 @@ const ANTONYMS = [
   {a:'aimer',b:'détester'},{a:'gagner',b:'perdre'},{a:'commencer',b:'finir'},
   {a:'trouver',b:'chercher'},{a:'donner',b:'recevoir'},{a:'parler',b:'écouter'},
   {a:'apprendre',b:'oublier'},{a:'allumer',b:'éteindre'},{a:'entrer',b:'sortir'},
-  {a:'noir',b:'blanc'},{a:'léger',b:'lourd'},{a:'proche',b:'loin'},
+  {a:'noir',b:'blanc'},{a:'proche',b:'loin'},
 ];
 
-// ── Topic mapping ─────────────────────────────────────────────────────────────
+// ── Topic mapping ──────────────────────────────────────────────────────────────
 const TOPIC_MAP = {
   all: null,
   everyday: ['daily','greetings','time','directions','social'],
@@ -120,23 +187,47 @@ const TOPIC_MAP = {
   home: ['house','household','housing'],
 };
 
-// ── Level config ──────────────────────────────────────────────────────────────
+// ── Level config ───────────────────────────────────────────────────────────────
 const LEVEL_CONFIG = {
-  A1: { name: 'Beginner', count: 5 },
-  A2: { name: 'Elementary', count: 8 },
+  A1: { name: 'Beginner',     count: 5  },
+  A2: { name: 'Elementary',   count: 8  },
   B1: { name: 'Intermediate', count: 12 },
-  B2: { name: 'Advanced', count: 16 },
-  C1: { name: 'Expert', count: 20 },
+  B2: { name: 'Advanced',     count: 16 },
+  C1: { name: 'Expert',       count: 20 },
 };
 
 const MODE_DESC = {
-  vocab: 'Match each French word to its English translation.',
-  gender: 'Match each noun to its correct gender — le (masculine) or la (feminine).',
-  antonyms: 'Match each French word to its French opposite.',
+  vocab:       'Match each French word to its translation.',
+  gender:      'Match each noun to its correct gender — le (masculine) or la (feminine).',
+  antonyms:    'Match each French word to its French opposite.',
   conjugation: 'Match each pronoun to the correct verb form.',
+  phrases:     'Choose the correct translation for each French phrase.',
 };
 
-// ── Utility ───────────────────────────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────────────────────
+let mode = 'vocab';
+let level = 'A1';
+let topic = 'all';
+let currentVerb = 'être';
+let currentTense = 'present';
+
+let pairs = [];
+let matched = [];
+let wrongTimer = null;
+let selSide = null;
+let selIdx = null;
+let leftItems = [];
+let rightItems = [];
+
+let sessionCorrect = 0;
+let sessionWrong = 0;
+let sessionRounds = 0;
+let roundMistakes = 0;
+
+let soundOn = true;
+let usedIds = {};
+
+// ── Utility ────────────────────────────────────────────────────────────────────
 function shuffle(a) { return [...a].sort(() => Math.random() - 0.5); }
 
 function getFilteredVocab() {
@@ -148,25 +239,37 @@ function getFilteredVocab() {
 }
 
 function pickWords(pool, count) {
-  const used = usedIds[level + topic] || [];
+  const key = level + topic;
+  const used = usedIds[key] || [];
   let available = pool.filter(w => !used.includes(w.id));
   if (available.length < count) {
-    usedIds[level + topic] = [];
+    usedIds[key] = [];
     available = pool;
   }
   const picked = shuffle(available).slice(0, count);
-  usedIds[level + topic] = [...(usedIds[level + topic] || []), ...picked.map(w => w.id)];
+  usedIds[key] = [...(usedIds[key] || []), ...picked.map(w => w.id)];
   return picked;
 }
 
-// ── Build pairs ───────────────────────────────────────────────────────────────
+// ── Build CONJ map from flat CONJUGATIONS array ────────────────────────────────
+function buildConjMap() {
+  const conj = {};
+  CONJUGATIONS.forEach(c => {
+    if (!conj[c.verb]) conj[c.verb] = {};
+    if (!conj[c.verb][c.tense]) conj[c.verb][c.tense] = {};
+    conj[c.verb][c.tense][c.subject] = c.form;
+  });
+  return conj;
+}
+
+// ── Build pairs ────────────────────────────────────────────────────────────────
 function buildPairs() {
   const count = LEVEL_CONFIG[level]?.count || 5;
 
   if (mode === 'vocab') {
     const pool = getFilteredVocab();
     const words = pickWords(pool, count);
-    return words.map(w => ({ left: w.fr, right: w.en, id: w.id }));
+    return words.map(w => ({ left: w.fr, right: getTranslation(w), id: w.id }));
   }
 
   if (mode === 'gender') {
@@ -198,7 +301,7 @@ function buildPairs() {
     return subjects.slice(0, Math.min(count, subjects.length)).map((subj, i) => ({
       left: subj,
       right: tenseData[subj],
-      id: 'conj_' + i,
+      id: 'conj_' + currentVerb + '_' + currentTense + '_' + i,
     }));
   }
 
@@ -206,12 +309,42 @@ function buildPairs() {
 }
 
 function buildFallbackPairs(count) {
-  const words = shuffle(VOCAB).slice(0, count);
-  return words.map(w => ({ left: w.fr, right: w.en, id: w.id }));
+  const pool = getFilteredVocab();
+  const src = pool.length >= count ? pool : VOCAB;
+  const words = shuffle(src).slice(0, count);
+  return words.map(w => ({ left: w.fr, right: getTranslation(w), id: w.id }));
 }
 
-// ── Render ────────────────────────────────────────────────────────────────────
+// ── Arena visibility helper ────────────────────────────────────────────────────
+function showArena(visible) {
+  const display = visible ? '' : 'none';
+  document.getElementById('col-labels').style.display = display;
+  document.getElementById('arena').style.display = display;
+  document.getElementById('fb').style.display = display;
+  document.getElementById('phrases-card').style.display = visible ? 'none' : 'none';
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────────
 function startRound() {
+  if (!currentProfile) return;
+
+  document.getElementById('round-end').style.display = 'none';
+
+  if (mode === 'phrases') {
+    document.getElementById('col-labels').style.display = 'none';
+    document.getElementById('arena').style.display = 'none';
+    document.getElementById('fb').style.display = 'none';
+    document.getElementById('phrases-card').style.display = 'block';
+    startPhrasesRound();
+    return;
+  }
+
+  // Restore arena
+  document.getElementById('col-labels').style.display = '';
+  document.getElementById('arena').style.display = '';
+  document.getElementById('fb').style.display = '';
+  document.getElementById('phrases-card').style.display = 'none';
+
   pairs = buildPairs();
 
   if (mode === 'gender') {
@@ -223,19 +356,18 @@ function startRound() {
   selSide = null; selIdx = null; wrongTimer = null; roundMistakes = 0;
 
   document.getElementById('prog').style.width = '0%';
-  document.getElementById('round-end').style.display = 'none';
   setFb('', '');
 
   const count = pairs.length;
   const cols = count <= 5 ? 1 : count <= 8 ? 2 : 3;
-  leftItems = pairs.map((_, i) => i);
+  leftItems  = pairs.map((_, i) => i);
   rightItems = shuffle(pairs.map((_, i) => i));
 
   const gl = document.getElementById('grid-l');
   const gr = document.getElementById('grid-r');
   gl.style.gridTemplateColumns = `repeat(${cols},1fr)`;
   gr.style.gridTemplateColumns = `repeat(${cols},1fr)`;
-  gl.innerHTML = leftItems.map((pi, slot) => cellHTML('l', slot, pi)).join('');
+  gl.innerHTML = leftItems.map( (pi, slot) => cellHTML('l', slot, pi)).join('');
   gr.innerHTML = rightItems.map((pi, slot) => cellHTML('r', slot, pi)).join('');
 
   updateColLabels();
@@ -255,7 +387,7 @@ function updateColLabels() {
     lr.textContent = 'GENRE';
   } else {
     ll.textContent = 'FRANÇAIS';
-    lr.textContent = 'ENGLISH';
+    lr.textContent = LANG_LABELS[currentLang] || 'ENGLISH';
   }
 }
 
@@ -269,27 +401,25 @@ function getSlot(side, pi) {
   return (side === 'l' ? leftItems : rightItems).indexOf(pi);
 }
 
-// ── Gender mode ───────────────────────────────────────────────────────────────
-let genderNouns = [];
+// ── Gender mode ────────────────────────────────────────────────────────────────
+let genderNouns   = [];
 let genderMatched = [];
-let genderSel = null;
+let genderSel     = null;
 let genderMistakes = 0;
 
 function startGenderRound() {
-  genderNouns = pairs;
+  genderNouns   = pairs;
   genderMatched = Array(genderNouns.length).fill(false);
   genderSel = null; genderMistakes = 0; roundMistakes = 0;
   wrongTimer = null;
 
   document.getElementById('prog').style.width = '0%';
-  document.getElementById('round-end').style.display = 'none';
   setFb('', '');
   updateColLabels();
 
   const cols = genderNouns.length <= 5 ? 1 : genderNouns.length <= 8 ? 2 : 3;
   const gl = document.getElementById('grid-l');
   const gr = document.getElementById('grid-r');
-
   gl.style.gridTemplateColumns = `repeat(${cols},1fr)`;
   gr.style.gridTemplateColumns = `repeat(${cols},1fr)`;
 
@@ -299,7 +429,6 @@ function startGenderRound() {
     return `<div class="cell gender-left${m ? ' matched' : ''}" id="gn-${slot}" data-pi="${pi}" onclick="onGenderNoun(${slot},${pi})">${genderNouns[pi].left}</div>`;
   }).join('');
 
-  // Right side: le and la repeated
   const genders = shuffle(['le (m)', 'la (f)', 'le (m)', 'la (f)', 'le (m)', 'la (f)', 'le (m)', 'la (f)'].slice(0, Math.max(4, genderNouns.length)));
   gr.innerHTML = genders.map((g, i) =>
     `<div class="cell" id="gg-${i}" data-gender="${g}" onclick="onGenderLabel(${i},'${g}')">${g}</div>`
@@ -335,7 +464,7 @@ function onGenderLabel(i, gender) {
     genderMistakes++; roundMistakes++; sessionWrong++;
     sm2Update(genderNouns[pi].id, false);
     const nounEl = document.getElementById(`gn-${slot}`);
-    const lblEl = document.getElementById(`gg-${i}`);
+    const lblEl  = document.getElementById(`gg-${i}`);
     nounEl.classList.remove('selected');
     nounEl.classList.add('wrong');
     lblEl.classList.add('wrong');
@@ -351,7 +480,7 @@ function onGenderLabel(i, gender) {
   }
 }
 
-// ── Match logic ───────────────────────────────────────────────────────────────
+// ── Match logic ────────────────────────────────────────────────────────────────
 function onCell(side, slot, pi) {
   if (matched[pi] || wrongTimer) return;
   if (selSide === null) {
@@ -383,7 +512,7 @@ function onCell(side, slot, pi) {
     const ps = selSide, pi2 = selIdx;
     document.querySelectorAll('.cell.selected').forEach(e => e.classList.remove('selected'));
     flash(side, pi); flash(ps, pi2);
-    sm2Update(pairs[pi].id, false);
+    sm2Update(pairs[pi].id,  false);
     sm2Update(pairs[pi2].id, false);
     setFb('Not a match — try again!', 'wrong');
     wrongTimer = setTimeout(() => {
@@ -410,7 +539,7 @@ function unflash(side, pi) {
   if (el) el.classList.remove('wrong');
 }
 
-// ── Feedback & stats ─────────────────────────────────────────────────────────
+// ── Feedback & stats ───────────────────────────────────────────────────────────
 function setFb(msg, type) {
   const el = document.getElementById('fb');
   el.textContent = msg;
@@ -419,16 +548,20 @@ function setFb(msg, type) {
 
 function updateSessionStats() {
   document.getElementById('stat-correct').textContent = sessionCorrect;
-  document.getElementById('stat-wrong').textContent = sessionWrong;
+  document.getElementById('stat-wrong').textContent   = sessionWrong;
 }
 
-// ── Round end ─────────────────────────────────────────────────────────────────
+// ── Round end ──────────────────────────────────────────────────────────────────
 function showRoundEnd() {
   sessionRounds++;
   updateStreak();
-  document.getElementById('round-score').textContent = (pairs.length || genderNouns.length) + '/' + (pairs.length || genderNouns.length);
-  document.getElementById('round-sub').textContent = roundMistakes === 0 ? 'Perfect round!' : roundMistakes + ' mistake' + (roundMistakes !== 1 ? 's' : '');
+  const total = pairs.length || genderNouns.length;
+  document.getElementById('round-score').textContent = total + '/' + total;
+  document.getElementById('round-sub').textContent   = roundMistakes === 0 ? 'Perfect round!' : roundMistakes + ' mistake' + (roundMistakes !== 1 ? 's' : '');
   document.getElementById('round-end').style.display = 'block';
+  // Part 1: scroll summary into view
+  setTimeout(() => document.getElementById('round-end').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  document.getElementById('stat-streak').textContent = getStreak();
   setFb('', '');
 }
 
@@ -437,7 +570,106 @@ function nextRound() {
   startRound();
 }
 
-// ── Sound ─────────────────────────────────────────────────────────────────────
+// ── Phrases mode ───────────────────────────────────────────────────────────────
+const PHRASES_PER_ROUND = 10;
+let phraseRound    = [];
+let phraseIndex    = 0;
+let phraseScore    = 0;
+let phraseMistakes = 0;
+let phraseAnswered = false;
+let phraseChoices  = []; // choices for current phrase (set in showCurrentPhrase)
+
+function startPhrasesRound() {
+  const used = usedIds['phrases'] || [];
+  let pool = PHRASES.filter(p => !used.includes(p.id));
+  if (pool.length < PHRASES_PER_ROUND) { usedIds['phrases'] = []; pool = [...PHRASES]; }
+  phraseRound = shuffle(pool).slice(0, PHRASES_PER_ROUND);
+  usedIds['phrases'] = [...(usedIds['phrases'] || []), ...phraseRound.map(p => p.id)];
+
+  phraseIndex = 0; phraseScore = 0; phraseMistakes = 0; roundMistakes = 0;
+  document.getElementById('prog').style.width = '0%';
+  showCurrentPhrase();
+}
+
+function showCurrentPhrase() {
+  phraseAnswered = false;
+  const phrase = phraseRound[phraseIndex];
+
+  document.getElementById('phrase-counter').textContent = (phraseIndex + 1) + ' / ' + PHRASES_PER_ROUND;
+  document.getElementById('phrase-fr').textContent = phrase.fr;
+  document.getElementById('phrase-feedback').innerHTML = '';
+
+  const correct = getTranslation(phrase);
+  const distractors = shuffle(PHRASES.filter(p => p.id !== phrase.id))
+    .slice(0, 3)
+    .map(p => getTranslation(p));
+  phraseChoices = shuffle([correct, ...distractors]);
+
+  document.getElementById('phrase-choices').innerHTML = phraseChoices.map((c, i) =>
+    `<button class="phrase-choice-btn" onclick="checkPhraseAnswer(${i})">${c}</button>`
+  ).join('');
+}
+
+function checkPhraseAnswer(choiceIdx) {
+  if (phraseAnswered) return;
+  phraseAnswered = true;
+
+  const phrase   = phraseRound[phraseIndex];
+  const correct  = getTranslation(phrase);
+  const chosen   = phraseChoices[choiceIdx];
+  const isCorrect = chosen === correct;
+
+  document.querySelectorAll('.phrase-choice-btn').forEach((b, i) => {
+    b.disabled = true;
+    if (phraseChoices[i] === correct) b.classList.add('correct');
+    else if (i === choiceIdx && !isCorrect) b.classList.add('wrong');
+  });
+
+  if (isCorrect) {
+    phraseScore++; sessionCorrect++;
+    sm2Update(phrase.id, true);
+    speak(phrase.fr);
+  } else {
+    phraseMistakes++; roundMistakes++; sessionWrong++;
+    sm2Update(phrase.id, false);
+  }
+  updateSessionStats();
+
+  const pct = Math.round((phraseIndex + 1) / PHRASES_PER_ROUND * 100);
+  document.getElementById('prog').style.width = pct + '%';
+
+  const isLast = phraseIndex >= PHRASES_PER_ROUND - 1;
+  document.getElementById('phrase-feedback').innerHTML =
+    `<div class="phrase-ref">` +
+    `<div><span class="phrase-ref-flag">🇫🇷</span> ${phrase.fr}</div>` +
+    `<div><span class="phrase-ref-flag">🇬🇧</span> ${phrase.en}</div>` +
+    `<div><span class="phrase-ref-flag">🇳🇱</span> ${phrase.nl || '—'}</div>` +
+    `<div><span class="phrase-ref-flag">🇩🇪</span> ${phrase.de || '—'}</div>` +
+    `</div>` +
+    `<button class="next-btn" onclick="advancePhrase()">${isLast ? 'See results →' : 'Next phrase →'}</button>`;
+}
+
+function advancePhrase() {
+  phraseIndex++;
+  if (phraseIndex >= PHRASES_PER_ROUND) {
+    endPhrasesRound();
+  } else {
+    showCurrentPhrase();
+  }
+}
+
+function endPhrasesRound() {
+  sessionRounds++;
+  updateStreak();
+  document.getElementById('phrases-card').style.display = 'none';
+  document.getElementById('round-score').textContent = phraseScore + '/' + PHRASES_PER_ROUND;
+  document.getElementById('round-sub').textContent   = phraseMistakes === 0 ? 'Perfect round!' : phraseMistakes + ' mistake' + (phraseMistakes !== 1 ? 's' : '');
+  document.getElementById('round-end').style.display = 'block';
+  setTimeout(() => document.getElementById('round-end').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  document.getElementById('stat-streak').textContent = getStreak();
+}
+
+// ── Sound ──────────────────────────────────────────────────────────────────────
 function speak(text) {
   if (!soundOn || !window.speechSynthesis) return;
   speechSynthesis.cancel();
@@ -460,35 +692,49 @@ function toggleSound() {
   saveSettings(s);
 }
 
-// ── Progress dashboard ────────────────────────────────────────────────────────
+// ── Language selector ──────────────────────────────────────────────────────────
+function setLanguage(lang) {
+  currentLang = lang;
+  const s = loadSettings();
+  s.lang = lang;
+  saveSettings(s);
+  usedIds = {};
+  startRound();
+}
+
+// ── Progress dashboard ─────────────────────────────────────────────────────────
 function showDashboard() {
-  const p = loadProgress();
-  const ids = Object.keys(p);
+  const p      = loadProgress();
+  const ids    = Object.keys(p);
+  const today  = new Date().toISOString().split('T')[0];
   const mastered = ids.filter(id => p[id].repetitions >= 3 && p[id].easeFactor > 2.0).length;
-  const today = new Date().toISOString().split('T')[0];
-  const due = ids.filter(id => p[id].nextReview <= today).length;
-  const streak = getStreak();
+  const due      = ids.filter(id => p[id].nextReview <= today).length;
+  const streak   = getStreak();
 
-  document.getElementById('dash-total').textContent = ids.length;
+  document.getElementById('dash-total').textContent    = ids.length;
   document.getElementById('dash-mastered').textContent = mastered;
-  document.getElementById('dash-streak').textContent = streak + ' day' + (streak !== 1 ? 's' : '');
-  document.getElementById('dash-due').textContent = due;
+  document.getElementById('dash-streak').textContent   = streak + ' day' + (streak !== 1 ? 's' : '');
+  document.getElementById('dash-due').textContent      = due;
 
-  // Category breakdown
+  // Category breakdown — VOCAB + PHRASES
   const catData = {};
   VOCAB.forEach(w => {
-    const cat = w.category;
-    if (!catData[cat]) catData[cat] = { total: 0, seen: 0 };
-    catData[cat].total++;
-    if (p[w.id]) catData[cat].seen++;
+    if (!catData[w.category]) catData[w.category] = { total: 0, seen: 0 };
+    catData[w.category].total++;
+    if (p[w.id]) catData[w.category].seen++;
+  });
+  PHRASES.forEach(ph => {
+    const key = 'phrases';
+    if (!catData[key]) catData[key] = { total: 0, seen: 0 };
+    catData[key].total++;
+    if (p[ph.id]) catData[key].seen++;
   });
 
   const topCats = Object.entries(catData).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
-  const catEl = document.getElementById('cat-breakdown');
-  catEl.innerHTML = topCats.map(([cat, d]) => `
+  document.getElementById('cat-breakdown').innerHTML = topCats.map(([cat, d]) => `
     <div class="cat-row">
       <div class="cat-name">${cat}</div>
-      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(d.seen/d.total*100)}%"></div></div>
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(d.seen / d.total * 100)}%"></div></div>
       <div class="cat-count">${d.seen}/${d.total}</div>
     </div>
   `).join('');
@@ -501,20 +747,21 @@ function hideDashboard() {
 }
 
 function resetProgress() {
-  if (!confirm('Reset all progress? This cannot be undone.')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(STREAK_KEY);
+  if (!currentProfile) return;
+  if (!confirm(`Reset all progress for ${currentProfile}? This cannot be undone.`)) return;
+  localStorage.removeItem(profileKey('progress'));
+  localStorage.removeItem(profileKey('streak'));
   usedIds = {};
   hideDashboard();
   startRound();
 }
 
-// ── UI event handlers ─────────────────────────────────────────────────────────
+// ── UI event handlers ──────────────────────────────────────────────────────────
 function setMode(m, el) {
   mode = m;
   document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('mode-desc').textContent = MODE_DESC[m];
+  document.getElementById('mode-desc').textContent = MODE_DESC[m] || '';
   document.getElementById('verb-selector').style.display = m === 'conjugation' ? 'flex' : 'none';
   document.getElementById('topic-row').style.display = (m === 'vocab' || m === 'gender') ? 'flex' : 'none';
   usedIds = {};
@@ -548,46 +795,39 @@ function setTense() {
 }
 
 function populateVerbSelect() {
-  const sel = document.getElementById('verb-select');
+  const sel     = document.getElementById('verb-select');
   const tenseSel = document.getElementById('tense-select');
   sel.innerHTML = VERBS.map(v => `<option value="${v.verb}">${v.verb} (${v.en})</option>`).join('');
-  const allTenses = ['present','imparfait','passé composé','futur','conditionnel'];
+  const allTenses = ['present', 'imparfait', 'passé composé', 'futur', 'conditionnel'];
   tenseSel.innerHTML = allTenses.map(t => `<option value="${t}">${t}</option>`).join('');
+  sel.value   = 'être';
+  currentVerb = 'être';
 }
 
-// ── Keyboard ──────────────────────────────────────────────────────────────────
+// ── Keyboard ───────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
     selSide = null; selIdx = null; genderSel = null;
+    closeProfileOverlay();
   }
 });
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────────────────
 function init() {
-  // Data embedded directly — no file loading needed
-  VOCAB = [{"id":"v-177","fr":"pantalon","en":"pants","level":"A1","category":"clothing","difficulty":1,"type":"noun","gender":"M"},{"id":"v-176","fr":"chemise","en":"shirt","level":"A1","category":"clothing","difficulty":1,"type":"noun","gender":"F"},{"id":"v-178","fr":"robe","en":"dress","level":"A1","category":"clothing","difficulty":1,"type":"noun","gender":"F"},{"id":"v-182","fr":"chaussures","en":"shoes","level":"A1","category":"clothing","difficulty":1,"type":"noun","gender":""},{"id":"v-183","fr":"chaussettes","en":"socks","level":"A1","category":"clothing","difficulty":1,"type":"noun","gender":""},{"id":"v-261","fr":"temps","en":"weather","level":"A1","category":"weather","difficulty":1,"type":"noun","gender":""},{"id":"v-265","fr":"vent","en":"wind","level":"A1","category":"weather","difficulty":1,"type":"noun","gender":"M"},{"id":"v-262","fr":"soleil","en":"sun","level":"A1","category":"weather","difficulty":1,"type":"noun","gender":"M"},{"id":"v-267","fr":"orage","en":"storm","level":"A1","category":"weather","difficulty":1,"type":"noun","gender":"M"},{"id":"v-264","fr":"neige","en":"snow","level":"A1","category":"weather","difficulty":1,"type":"noun","gender":"F"},{"id":"v-164","fr":"salle de bain","en":"bathroom","level":"A1","category":"house","difficulty":1,"type":"noun","gender":"M"},{"id":"v-168","fr":"porte","en":"door","level":"A1","category":"house","difficulty":1,"type":"noun","gender":"F"},{"id":"v-170","fr":"table","en":"table","level":"A1","category":"house","difficulty":1,"type":"noun","gender":"F"},{"id":"v-165","fr":"salon","en":"living room","level":"A1","category":"house","difficulty":1,"type":"noun","gender":"M"},{"id":"v-161","fr":"pièce","en":"room","level":"A1","category":"house","difficulty":1,"type":"noun","gender":"F"},{"id":"v-99","fr":"avril","en":"April","level":"A1","category":"time","difficulty":1,"type":"noun","gender":""},{"id":"v-116","fr":"semaine","en":"week","level":"A1","category":"time","difficulty":1,"type":"noun","gender":"F"},{"id":"v-110","fr":"automne","en":"autumn/fall","level":"A1","category":"time","difficulty":1,"type":"noun","gender":"M"},{"id":"v-106","fr":"novembre","en":"November","level":"A1","category":"time","difficulty":1,"type":"noun","gender":""},{"id":"v-98","fr":"mars","en":"March","level":"A1","category":"time","difficulty":1,"type":"noun","gender":""},{"id":"v-282","fr":"serveur","en":"waiter","level":"A1","category":"occupations","difficulty":1,"type":"noun","gender":"M"},{"id":"v-286","fr":"artiste","en":"artist","level":"A1","category":"occupations","difficulty":1,"type":"noun","gender":""},{"id":"v-279","fr":"pompier","en":"firefighter","level":"A1","category":"occupations","difficulty":1,"type":"noun","gender":"M"},{"id":"v-278","fr":"policier","en":"police officer","level":"A1","category":"occupations","difficulty":1,"type":"noun","gender":"M"},{"id":"v-288","fr":"acteur","en":"actor","level":"A1","category":"occupations","difficulty":1,"type":"noun","gender":"M"},{"id":"v-244","fr":"cahier","en":"notebook","level":"A1","category":"school","difficulty":1,"type":"noun","gender":"M"},{"id":"v-252","fr":"examen","en":"exam","level":"A1","category":"school","difficulty":1,"type":"noun","gender":""},{"id":"v-259","fr":"dictionnaire","en":"dictionary","level":"A1","category":"school","difficulty":1,"type":"noun","gender":""},{"id":"v-249","fr":"classe","en":"class","level":"A1","category":"school","difficulty":1,"type":"noun","gender":"F"},{"id":"v-242","fr":"professeur","en":"teacher","level":"A1","category":"school","difficulty":1,"type":"noun","gender":"M"},{"id":"v-48","fr":"voir","en":"to see","level":"A1","category":"verbs","difficulty":1,"type":"verb","gender":""},{"id":"v-44","fr":"parler","en":"to speak","level":"A1","category":"verbs","difficulty":1,"type":"verb","gender":""},{"id":"v-45","fr":"écouter","en":"to listen","level":"A1","category":"verbs","difficulty":1,"type":"verb","gender":""},{"id":"v-38","fr":"avoir","en":"to have","level":"A1","category":"verbs","difficulty":1,"type":"verb","gender":""},{"id":"v-43","fr":"dormir","en":"to sleep","level":"A1","category":"verbs","difficulty":1,"type":"verb","gender":""},{"id":"v-16","fr":"mère","en":"mother","level":"A1","category":"family","difficulty":1,"type":"noun","gender":"F"},{"id":"v-18","fr":"sœur","en":"sister","level":"A1","category":"family","difficulty":1,"type":"noun","gender":"F"},{"id":"v-19","fr":"frère","en":"brother","level":"A1","category":"family","difficulty":1,"type":"noun","gender":"M"},{"id":"v-17","fr":"père","en":"father","level":"A1","category":"family","difficulty":1,"type":"noun","gender":"M"},{"id":"v-20","fr":"enfant","en":"child","level":"A1","category":"family","difficulty":1,"type":"noun","gender":"M"},{"id":"v-207","fr":"pied","en":"foot","level":"A1","category":"body","difficulty":1,"type":"noun","gender":"M"},{"id":"v-197","fr":"visage","en":"face","level":"A1","category":"body","difficulty":1,"type":"noun","gender":"M"},{"id":"v-196","fr":"tête","en":"head","level":"A1","category":"body","difficulty":1,"type":"noun","gender":"F"},{"id":"v-206","fr":"jambe","en":"leg","level":"A1","category":"body","difficulty":1,"type":"noun","gender":"F"},{"id":"v-199","fr":"nez","en":"nose","level":"A1","category":"body","difficulty":1,"type":"noun","gender":"M"},{"id":"v-85","fr":"soixante-dix","en":"seventy","level":"A1","category":"numbers","difficulty":1,"type":"number","gender":""},{"id":"v-30","fr":"dix","en":"ten","level":"A1","category":"numbers","difficulty":1,"type":"number","gender":""},{"id":"v-23","fr":"trois","en":"three","level":"A1","category":"numbers","difficulty":1,"type":"number","gender":""},{"id":"v-88","fr":"cent","en":"one hundred","level":"A1","category":"numbers","difficulty":1,"type":"number","gender":""},{"id":"v-28","fr":"huit","en":"eight","level":"A1","category":"numbers","difficulty":1,"type":"number","gender":""},{"id":"v-31","fr":"rouge","en":"red","level":"A1","category":"colors","difficulty":1,"type":"adjective","gender":""},{"id":"v-34","fr":"jaune","en":"yellow","level":"A1","category":"colors","difficulty":1,"type":"adjective","gender":""},{"id":"v-33","fr":"vert","en":"green","level":"A1","category":"colors","difficulty":1,"type":"adjective","gender":""},{"id":"v-32","fr":"bleu","en":"blue","level":"A1","category":"colors","difficulty":1,"type":"adjective","gender":""},{"id":"v-35","fr":"noir","en":"black","level":"A1","category":"colors","difficulty":1,"type":"adjective","gender":""},{"id":"v-2","fr":"au revoir","en":"goodbye","level":"A1","category":"greetings","difficulty":1,"type":"phrase","gender":""},{"id":"v-3","fr":"merci","en":"thank you","level":"A1","category":"greetings","difficulty":1,"type":"phrase","gender":""},{"id":"v-6","fr":"oui","en":"yes","level":"A1","category":"greetings","difficulty":1,"type":"phrase","gender":""},{"id":"v-1","fr":"bonjour","en":"hello","level":"A1","category":"greetings","difficulty":1,"type":"phrase","gender":""},{"id":"v-7","fr":"non","en":"no","level":"A1","category":"greetings","difficulty":1,"type":"phrase","gender":""},{"id":"v-12","fr":"thé","en":"tea","level":"A1","category":"food","difficulty":1,"type":"noun","gender":"M"},{"id":"v-159","fr":"biscuit","en":"cookie","level":"A1","category":"food","difficulty":1,"type":"noun","gender":"M"},{"id":"v-131","fr":"banane","en":"banana","level":"A1","category":"food","difficulty":1,"type":"noun","gender":"F"},{"id":"v-155","fr":"dîner","en":"dinner","level":"A1","category":"food","difficulty":1,"type":"noun","gender":"M"},{"id":"v-136","fr":"pomme de terre","en":"potato","level":"A1","category":"food","difficulty":1,"type":"noun","gender":""},{"id":"v-216","fr":"chaud","en":"hot","level":"A1","category":"adjectives","difficulty":1,"type":"adjective","gender":""},{"id":"v-225","fr":"court","en":"short","level":"A1","category":"adjectives","difficulty":1,"type":"adjective","gender":""},{"id":"v-223","fr":"lent","en":"slow","level":"A1","category":"adjectives","difficulty":1,"type":"adjective","gender":""},{"id":"v-219","fr":"jeune","en":"young","level":"A1","category":"adjectives","difficulty":1,"type":"adjective","gender":""},{"id":"v-240","fr":"correct","en":"right (correct)","level":"A1","category":"adjectives","difficulty":1,"type":"adjective","gender":""},{"id":"v-2328","fr":"malade","en":"sick","level":"A2","category":"adjectives","difficulty":2,"type":"adjective","gender":""},{"id":"v-3428","fr":"gris","en":"gray","level":"A2","category":"adjectives","difficulty":2,"type":"adjective","gender":""},{"id":"v-4090","fr":"région","en":"region","level":"A2","category":"places","difficulty":2,"type":"noun","gender":"F"},{"id":"v-4081","fr":"endroit","en":"place","level":"A2","category":"places","difficulty":2,"type":"noun","gender":""},{"id":"v-4071","fr":"chanter","en":"to sing","level":"A2","category":"verbs","difficulty":2,"type":"verb","gender":""},{"id":"v-4068","fr":"sauter","en":"to jump","level":"A2","category":"verbs","difficulty":2,"type":"verb","gender":""},{"id":"v-492","fr":"généreux","en":"generous","level":"A2","category":"personality","difficulty":2,"type":"adjective","gender":""},{"id":"v-488","fr":"sérieux","en":"serious","level":"A2","category":"personality","difficulty":2,"type":"adjective","gender":""},{"id":"v-2249","fr":"horloge","en":"clock","level":"A2","category":"household","difficulty":2,"type":"noun","gender":""},{"id":"v-2273","fr":"lave-vaisselle","en":"dishwasher","level":"A2","category":"household","difficulty":2,"type":"noun","gender":"F"},{"id":"v-4145","fr":"montagne","en":"mountain","level":"A2","category":"nature","difficulty":2,"type":"noun","gender":"F"},{"id":"v-2280","fr":"branche","en":"branch","level":"A2","category":"nature","difficulty":2,"type":"noun","gender":""},{"id":"v-397","fr":"malade","en":"sick","level":"A2","category":"health","difficulty":2,"type":"noun","gender":""},{"id":"v-399","fr":"mal de tête","en":"headache","level":"A2","category":"health","difficulty":2,"type":"noun","gender":""},{"id":"v-3475","fr":"beaucoup","en":"many","level":"A2","category":"numbers","difficulty":2,"type":"number","gender":""},{"id":"v-3476","fr":"peu","en":"few","level":"A2","category":"numbers","difficulty":2,"type":"number","gender":""},{"id":"v-474","fr":"inquiet","en":"worried","level":"A2","category":"emotions","difficulty":2,"type":"noun","gender":"M"},{"id":"v-463","fr":"haine","en":"hate","level":"A2","category":"emotions","difficulty":2,"type":"noun","gender":""},{"id":"v-348","fr":"sac","en":"bag","level":"A2","category":"shopping","difficulty":2,"type":"noun","gender":"M"},{"id":"v-355","fr":"payer","en":"to pay","level":"A2","category":"shopping","difficulty":2,"type":"verb","gender":""},{"id":"v-435","fr":"papillon","en":"butterfly","level":"A2","category":"animals","difficulty":2,"type":"noun","gender":"M"},{"id":"v-430","fr":"loup","en":"wolf","level":"A2","category":"animals","difficulty":2,"type":"noun","gender":""},{"id":"v-312","fr":"retard","en":"delay","level":"A2","category":"transportation","difficulty":2,"type":"noun","gender":""},{"id":"v-304","fr":"métro","en":"metro/subway","level":"A2","category":"transportation","difficulty":2,"type":"noun","gender":"M"},{"id":"v-2378","fr":"grand-mère","en":"grandmother","level":"A2","category":"people","difficulty":2,"type":"noun","gender":""},{"id":"v-2361","fr":"personne","en":"person","level":"A2","category":"people","difficulty":2,"type":"noun","gender":""},{"id":"v-319","fr":"passeport","en":"passport","level":"A2","category":"travel","difficulty":2,"type":"noun","gender":"M"},{"id":"v-333","fr":"village","en":"village","level":"A2","category":"travel","difficulty":2,"type":"noun","gender":"M"},{"id":"v-380","fr":"ballon","en":"ball","level":"A2","category":"hobbies","difficulty":2,"type":"noun","gender":"M"},{"id":"v-364","fr":"ski","en":"skiing","level":"A2","category":"hobbies","difficulty":2,"type":"noun","gender":""},{"id":"v-4020","fr":"mûr","en":"ripe","level":"A2","category":"food","difficulty":2,"type":"noun","gender":""},{"id":"v-4012","fr":"épicé","en":"spicy","level":"A2","category":"food","difficulty":2,"type":"noun","gender":""},{"id":"v-4046","fr":"tête","en":"head","level":"A2","category":"body","difficulty":2,"type":"noun","gender":"F"},{"id":"v-3414","fr":"oreille","en":"ear","level":"A2","category":"body","difficulty":2,"type":"noun","gender":"F"},{"id":"v-4025","fr":"jaune","en":"yellow","level":"A2","category":"descriptive","difficulty":2,"type":"adjective","gender":""},{"id":"v-4027","fr":"violet","en":"purple","level":"A2","category":"descriptive","difficulty":2,"type":"adjective","gender":""},{"id":"v-2390","fr":"après-midi","en":"afternoon","level":"A2","category":"time","difficulty":2,"type":"noun","gender":""},{"id":"v-4100","fr":"bientôt","en":"soon","level":"A2","category":"time","difficulty":2,"type":"noun","gender":""},{"id":"v-441","fr":"direction","en":"direction","level":"A2","category":"directions","difficulty":2,"type":"noun","gender":"F"},{"id":"v-449","fr":"près","en":"near","level":"A2","category":"directions","difficulty":2,"type":"noun","gender":""},{"id":"v-389","fr":"écran","en":"screen","level":"A2","category":"technology","difficulty":2,"type":"noun","gender":"M"},{"id":"v-393","fr":"mot de passe","en":"password","level":"A2","category":"technology","difficulty":2,"type":"noun","gender":""},{"id":"v-3403","fr":"robe","en":"dress","level":"A2","category":"clothing","difficulty":2,"type":"noun","gender":"F"},{"id":"v-3409","fr":"chaussettes","en":"socks","level":"A2","category":"clothing","difficulty":2,"type":"noun","gender":""},{"id":"v-3482","fr":"ici","en":"here","level":"A2","category":"locations","difficulty":2,"type":"noun","gender":""},{"id":"v-3485","fr":"droite","en":"right","level":"A2","category":"locations","difficulty":2,"type":"noun","gender":""},{"id":"v-4141","fr":"chaud","en":"warm","level":"A2","category":"weather","difficulty":2,"type":"noun","gender":""},{"id":"v-4137","fr":"neige","en":"snow","level":"A2","category":"weather","difficulty":2,"type":"noun","gender":"F"},{"id":"v-2003","fr":"four","en":"oven","level":"B1","category":"cooking","difficulty":3,"type":"noun","gender":""},{"id":"v-2011","fr":"cuisiner","en":"to cook","level":"B1","category":"cooking","difficulty":3,"type":"verb","gender":""},{"id":"v-3298","fr":"festival","en":"festival","level":"B1","category":"leisure","difficulty":3,"type":"noun","gender":"M"},{"id":"v-3299","fr":"célébration","en":"celebration","level":"B1","category":"leisure","difficulty":3,"type":"noun","gender":"F"},{"id":"v-538","fr":"ministre","en":"minister","level":"B1","category":"politics","difficulty":3,"type":"noun","gender":""},{"id":"v-540","fr":"vote","en":"vote","level":"B1","category":"politics","difficulty":3,"type":"noun","gender":""},{"id":"v-3859","fr":"autoroute","en":"highway","level":"B1","category":"transport","difficulty":3,"type":"noun","gender":""},{"id":"v-3857","fr":"mécanicien","en":"mechanic","level":"B1","category":"transport","difficulty":3,"type":"noun","gender":""},{"id":"v-2019","fr":"étagère","en":"shelf","level":"B1","category":"household","difficulty":3,"type":"noun","gender":""},{"id":"v-2024","fr":"tapis","en":"rug","level":"B1","category":"household","difficulty":3,"type":"noun","gender":""},{"id":"v-2427","fr":"galerie","en":"gallery","level":"B1","category":"culture","difficulty":3,"type":"noun","gender":"F"},{"id":"v-2430","fr":"concert","en":"concert","level":"B1","category":"culture","difficulty":3,"type":"noun","gender":""},{"id":"v-2043","fr":"télécharger","en":"to download","level":"B1","category":"technology","difficulty":3,"type":"verb","gender":""},{"id":"v-3278","fr":"spam","en":"spam","level":"B1","category":"technology","difficulty":3,"type":"noun","gender":""},{"id":"v-527","fr":"budget","en":"budget","level":"B1","category":"business","difficulty":3,"type":"noun","gender":"M"},{"id":"v-530","fr":"marché","en":"market","level":"B1","category":"business","difficulty":3,"type":"noun","gender":""},{"id":"v-3220","fr":"remboursement","en":"refund","level":"B1","category":"service","difficulty":3,"type":"noun","gender":"M"},{"id":"v-3219","fr":"plainte","en":"complaint","level":"B1","category":"service","difficulty":3,"type":"noun","gender":""},{"id":"v-3258","fr":"démission","en":"resignation","level":"B1","category":"work","difficulty":3,"type":"noun","gender":"F"},{"id":"v-3850","fr":"équipe","en":"shift","level":"B1","category":"work","difficulty":3,"type":"noun","gender":""},{"id":"v-3262","fr":"propriétaire","en":"landlord","level":"B1","category":"housing","difficulty":3,"type":"noun","gender":""},{"id":"v-3266","fr":"bail","en":"lease","level":"B1","category":"housing","difficulty":3,"type":"noun","gender":""},{"id":"v-3811","fr":"compte","en":"account","level":"B1","category":"finance","difficulty":3,"type":"noun","gender":""},{"id":"v-3819","fr":"dette","en":"debt","level":"B1","category":"finance","difficulty":3,"type":"noun","gender":"F"},{"id":"v-2067","fr":"coude","en":"elbow","level":"B1","category":"body","difficulty":3,"type":"noun","gender":"F"},{"id":"v-2070","fr":"cheville","en":"ankle","level":"B1","category":"body","difficulty":3,"type":"noun","gender":""},{"id":"v-3281","fr":"urgence","en":"emergency","level":"B1","category":"safety","difficulty":3,"type":"noun","gender":"F"},{"id":"v-3282","fr":"ambulance","en":"ambulance","level":"B1","category":"safety","difficulty":3,"type":"noun","gender":"F"},{"id":"v-2442","fr":"recherche","en":"research","level":"B1","category":"science","difficulty":3,"type":"noun","gender":""},{"id":"v-2448","fr":"technologie","en":"technology","level":"B1","category":"science","difficulty":3,"type":"noun","gender":"F"},{"id":"v-552","fr":"nature","en":"nature","level":"B1","category":"environment","difficulty":3,"type":"noun","gender":"F"},{"id":"v-551","fr":"environnement","en":"environment","level":"B1","category":"environment","difficulty":3,"type":"noun","gender":"M"},{"id":"v-3236","fr":"pourboire","en":"tip","level":"B1","category":"dining","difficulty":3,"type":"noun","gender":""},{"id":"v-3232","fr":"entrée","en":"appetizer","level":"B1","category":"dining","difficulty":3,"type":"noun","gender":"F"},{"id":"v-2477","fr":"terrain","en":"field","level":"B1","category":"sports","difficulty":3,"type":"noun","gender":"M"},{"id":"v-2468","fr":"victoire","en":"victory","level":"B1","category":"sports","difficulty":3,"type":"noun","gender":""},{"id":"v-2051","fr":"prendre le petit-déjeuner","en":"to have breakfast","level":"B1","category":"daily","difficulty":3,"type":"verb","gender":""},{"id":"v-2052","fr":"faire la navette","en":"to commute","level":"B1","category":"daily","difficulty":3,"type":"verb","gender":""},{"id":"v-3878","fr":"déforestation","en":"deforestation","level":"B1","category":"nature","difficulty":3,"type":"noun","gender":"F"},{"id":"v-3874","fr":"habitat","en":"habitat","level":"B1","category":"nature","difficulty":3,"type":"noun","gender":"M"},{"id":"v-2585","fr":"passion","en":"passion","level":"B1","category":"abstract","difficulty":3,"type":"noun","gender":"F"},{"id":"v-2532","fr":"solution","en":"solution","level":"B1","category":"abstract","difficulty":3,"type":"noun","gender":"F"},{"id":"v-2529","fr":"prétendre","en":"to claim","level":"B1","category":"verbs","difficulty":3,"type":"verb","gender":""},{"id":"v-3889","fr":"contribuer","en":"to contribute","level":"B1","category":"verbs","difficulty":3,"type":"verb","gender":""},{"id":"v-3216","fr":"chambre double","en":"double room","level":"B1","category":"travel","difficulty":3,"type":"noun","gender":""},{"id":"v-3208","fr":"passager","en":"passenger","level":"B1","category":"travel","difficulty":3,"type":"noun","gender":""},{"id":"v-3866","fr":"date limite","en":"deadline","level":"B1","category":"education","difficulty":3,"type":"noun","gender":""},{"id":"v-3864","fr":"conférence","en":"lecture","level":"B1","category":"education","difficulty":3,"type":"noun","gender":"F"},{"id":"v-2062","fr":"médicament","en":"medicine","level":"B1","category":"health","difficulty":3,"type":"noun","gender":"M"},{"id":"v-2059","fr":"mal de tête","en":"headache","level":"B1","category":"health","difficulty":3,"type":"noun","gender":""},{"id":"v-572","fr":"article","en":"article","level":"B1","category":"media","difficulty":3,"type":"noun","gender":""},{"id":"v-3838","fr":"publication","en":"publication","level":"B1","category":"media","difficulty":3,"type":"noun","gender":"F"},{"id":"v-3894","fr":"approprié","en":"appropriate","level":"B1","category":"adjectives","difficulty":3,"type":"adjective","gender":""},{"id":"v-3892","fr":"fiable","en":"reliable","level":"B1","category":"adjectives","difficulty":3,"type":"adjective","gender":""},{"id":"v-3806","fr":"garantie","en":"guarantee","level":"B1","category":"shopping","difficulty":3,"type":"noun","gender":"F"},{"id":"v-3810","fr":"qualité","en":"quality","level":"B1","category":"shopping","difficulty":3,"type":"noun","gender":"F"},{"id":"v-4214","fr":"procès","en":"trial","level":"B2","category":"law","difficulty":4,"type":"noun","gender":""},{"id":"v-627","fr":"phénomène","en":"phenomenon","level":"B2","category":"scientific","difficulty":4,"type":"noun","gender":""},{"id":"v-3611","fr":"anxiété","en":"anxiety","level":"B2","category":"emotions","difficulty":4,"type":"noun","gender":"F"},{"id":"v-3693","fr":"loisirs","en":"recreation","level":"B2","category":"leisure","difficulty":4,"type":"noun","gender":""},{"id":"v-3097","fr":"banlieue","en":"suburb","level":"B2","category":"urban","difficulty":4,"type":"noun","gender":""},{"id":"v-4261","fr":"problème","en":"problem","level":"B2","category":"abstract","difficulty":4,"type":"noun","gender":"M"},{"id":"v-2625","fr":"faillite","en":"bankruptcy","level":"B2","category":"economics","difficulty":4,"type":"noun","gender":""},{"id":"v-2109","fr":"habitat","en":"habitat","level":"B2","category":"environment","difficulty":4,"type":"noun","gender":"M"},{"id":"v-2699","fr":"remplacer","en":"to replace","level":"B2","category":"verbs","difficulty":4,"type":"verb","gender":""},{"id":"v-605","fr":"cadre","en":"framework","level":"B2","category":"professional","difficulty":4,"type":"noun","gender":""},{"id":"v-3058","fr":"dividende","en":"dividend","level":"B2","category":"finance","difficulty":4,"type":"noun","gender":""},{"id":"v-3649","fr":"monument","en":"monument","level":"B2","category":"culture","difficulty":4,"type":"noun","gender":"M"},{"id":"v-4196","fr":"invention","en":"invention","level":"B2","category":"science","difficulty":4,"type":"noun","gender":"F"},{"id":"v-615","fr":"plaignant","en":"plaintiff","level":"B2","category":"legal","difficulty":4,"type":"noun","gender":""},{"id":"v-3604","fr":"sécheresse","en":"drought","level":"B2","category":"weather","difficulty":4,"type":"noun","gender":"F"},{"id":"v-4175","fr":"tournoi","en":"tournament","level":"B2","category":"sports","difficulty":4,"type":"noun","gender":""},{"id":"v-3625","fr":"se peigner","en":"to comb hair","level":"B2","category":"daily","difficulty":4,"type":"verb","gender":""},{"id":"v-2092","fr":"dépression","en":"depression","level":"B2","category":"psychology","difficulty":4,"type":"noun","gender":"F"},{"id":"v-660","fr":"substantiel","en":"substantial","level":"B2","category":"adjectives","difficulty":4,"type":"adjective","gender":""},{"id":"v-2748","fr":"racisme","en":"racism","level":"B2","category":"politics","difficulty":4,"type":"noun","gender":"M"},{"id":"v-3639","fr":"étranger","en":"stranger","level":"B2","category":"social","difficulty":4,"type":"noun","gender":""},{"id":"v-3001","fr":"symptôme","en":"symptom","level":"B2","category":"health","difficulty":4,"type":"noun","gender":""},{"id":"v-3086","fr":"censure","en":"censorship","level":"B2","category":"media","difficulty":4,"type":"noun","gender":"F"},{"id":"v-3661","fr":"ranger","en":"to tidy up","level":"B2","category":"household","difficulty":4,"type":"verb","gender":""},{"id":"v-4241","fr":"mètre","en":"meter","level":"B2","category":"measurement","difficulty":4,"type":"noun","gender":""},{"id":"v-4188","fr":"sculpture","en":"sculpture","level":"B2","category":"arts","difficulty":4,"type":"noun","gender":"F"},{"id":"v-4239","fr":"colline","en":"hill","level":"B2","category":"geography","difficulty":4,"type":"noun","gender":""},{"id":"v-4170","fr":"singe","en":"monkey","level":"B2","category":"animals","difficulty":4,"type":"noun","gender":""},{"id":"v-4230","fr":"arme","en":"weapon","level":"B2","category":"military","difficulty":4,"type":"noun","gender":""},{"id":"v-2116","fr":"informatique en nuage","en":"cloud computing","level":"B2","category":"technology","difficulty":4,"type":"noun","gender":"M"},{"id":"v-3655","fr":"coiffure","en":"hairstyle","level":"B2","category":"appearance","difficulty":4,"type":"adjective","gender":""},{"id":"v-3689","fr":"engagement","en":"commitment","level":"B2","category":"relationships","difficulty":4,"type":"noun","gender":"M"},{"id":"v-4252","fr":"bois","en":"wood","level":"B2","category":"materials","difficulty":4,"type":"noun","gender":""},{"id":"v-2073","fr":"citation","en":"citation","level":"B2","category":"academic","difficulty":4,"type":"noun","gender":"F"},{"id":"v-632","fr":"récession","en":"recession","level":"B2","category":"economic","difficulty":4,"type":"noun","gender":"F"},{"id":"v-4210","fr":"spirituel","en":"spiritual","level":"B2","category":"philosophy","difficulty":4,"type":"noun","gender":"M"},{"id":"v-3121","fr":"stratification","en":"stratification","level":"C1","category":"sociology","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3105","fr":"litige","en":"litigation","level":"C1","category":"professional","difficulty":5,"type":"noun","gender":""},{"id":"v-3582","fr":"jurisprudence","en":"jurisprudence","level":"C1","category":"law","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3132","fr":"socialisme","en":"socialism","level":"C1","category":"politics","difficulty":5,"type":"noun","gender":"M"},{"id":"v-3959","fr":"virtualisation","en":"virtualization","level":"C1","category":"technology","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3164","fr":"politique monétaire","en":"monetary policy","level":"C1","category":"economics","difficulty":5,"type":"noun","gender":""},{"id":"v-3569","fr":"solvant","en":"solvent","level":"C1","category":"chemistry","difficulty":5,"type":"noun","gender":""},{"id":"v-2857","fr":"étayer","en":"to substantiate","level":"C1","category":"verbs","difficulty":5,"type":"verb","gender":""},{"id":"v-3533","fr":"longitude","en":"longitude","level":"C1","category":"geography","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3916","fr":"portefeuille","en":"portfolio","level":"C1","category":"finance","difficulty":5,"type":"noun","gender":""},{"id":"v-2152","fr":"diplomatie","en":"diplomacy","level":"C1","category":"political","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3514","fr":"étiologie","en":"etiology","level":"C1","category":"medicine","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3906","fr":"externalisation","en":"outsourcing","level":"C1","category":"business","difficulty":5,"type":"noun","gender":"F"},{"id":"v-2145","fr":"prose","en":"prose","level":"C1","category":"literary","difficulty":5,"type":"noun","gender":""},{"id":"v-3503","fr":"axiome","en":"axiom","level":"C1","category":"mathematics","difficulty":5,"type":"noun","gender":""},{"id":"v-3175","fr":"chromosome","en":"chromosome","level":"C1","category":"science","difficulty":5,"type":"noun","gender":""},{"id":"v-3529","fr":"fouille","en":"excavation","level":"C1","category":"history","difficulty":5,"type":"noun","gender":""},{"id":"v-3195","fr":"minimalisme","en":"minimalism","level":"C1","category":"art","difficulty":5,"type":"noun","gender":"M"},{"id":"v-3980","fr":"reboisement","en":"reforestation","level":"C1","category":"environment","difficulty":5,"type":"noun","gender":"M"},{"id":"v-3157","fr":"absolutisme","en":"absolutism","level":"C1","category":"philosophy","difficulty":5,"type":"noun","gender":"M"},{"id":"v-3551","fr":"biodiversité","en":"biodiversity","level":"C1","category":"biology","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3599","fr":"timbre","en":"timbre","level":"C1","category":"music","difficulty":5,"type":"noun","gender":""},{"id":"v-3925","fr":"sanction","en":"sanction","level":"C1","category":"diplomacy","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3542","fr":"constellation","en":"constellation","level":"C1","category":"astronomy","difficulty":5,"type":"noun","gender":"F"},{"id":"v-2775","fr":"conjecture","en":"conjecture","level":"C1","category":"academic","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3185","fr":"étymologie","en":"etymology","level":"C1","category":"linguistics","difficulty":5,"type":"noun","gender":"F"},{"id":"v-2879","fr":"anomalie","en":"anomaly","level":"C1","category":"abstract","difficulty":5,"type":"noun","gender":"F"},{"id":"v-3942","fr":"thérapeutique","en":"therapeutic","level":"C1","category":"medical","difficulty":5,"type":"noun","gender":""},{"id":"v-3579","fr":"calibration","en":"calibration","level":"C1","category":"engineering","difficulty":5,"type":"noun","gender":"F"},{"id":"v-690","fr":"pragmatique","en":"pragmatic","level":"C1","category":"adjectives","difficulty":5,"type":"adjective","gender":""},{"id":"v-695","fr":"juxtaposition","en":"juxtaposition","level":"C2","category":"professional","difficulty":6,"type":"noun","gender":"F"},{"id":"v-694","fr":"mise en garde","en":"caveat","level":"C2","category":"professional","difficulty":6,"type":"noun","gender":""},{"id":"v-3372","fr":"heuristique","en":"heuristic","level":"C2","category":"philosophy","difficulty":6,"type":"noun","gender":""},{"id":"v-2184","fr":"phénoménologie","en":"phenomenology","level":"C2","category":"philosophy","difficulty":6,"type":"noun","gender":"F"},{"id":"v-3762","fr":"mitochondries","en":"mitochondria","level":"C2","category":"science","difficulty":6,"type":"noun","gender":""},{"id":"v-3767","fr":"quarks","en":"quarks","level":"C2","category":"science","difficulty":6,"type":"noun","gender":""},{"id":"v-3744","fr":"pusillanimité","en":"pusillanimity","level":"C2","category":"abstract","difficulty":6,"type":"noun","gender":"F"},{"id":"v-2988","fr":"mégalomanie","en":"megalomania","level":"C2","category":"abstract","difficulty":6,"type":"noun","gender":"F"},{"id":"v-2191","fr":"obséquieux","en":"obsequious","level":"C2","category":"adjectives","difficulty":6,"type":"adjective","gender":""},{"id":"v-701","fr":"quintessentiel","en":"quintessential","level":"C2","category":"adjectives","difficulty":6,"type":"adjective","gender":""},{"id":"v-3387","fr":"obscur","en":"recondite","level":"C2","category":"literary","difficulty":6,"type":"noun","gender":""},{"id":"v-3755","fr":"persiflage","en":"persiflage","level":"C2","category":"literary","difficulty":6,"type":"noun","gender":"M"},{"id":"v-3773","fr":"privilège","en":"lien","level":"C2","category":"law","difficulty":6,"type":"noun","gender":""},{"id":"v-3775","fr":"citation","en":"subpoena","level":"C2","category":"law","difficulty":6,"type":"noun","gender":"F"},{"id":"v-3783","fr":"quichottesque","en":"quixotic","level":"C2","category":"academic","difficulty":6,"type":"noun","gender":""},{"id":"v-3788","fr":"tautologie","en":"tautology","level":"C2","category":"academic","difficulty":6,"type":"noun","gender":"F"},{"id":"v-3318","fr":"promulguer","en":"to promulgate","level":"C2","category":"verbs","difficulty":6,"type":"verb","gender":""},{"id":"v-3738","fr":"abroger","en":"to abrogate","level":"C2","category":"verbs","difficulty":6,"type":"verb","gender":""}];
-  CONJ = {"être":{"present":{"je":"suis","tu":"es","il/elle":"est","nous":"sommes","vous":"êtes","ils/elles":"sont"},"passé composé":{"j\\":"ai été"},"imparfait":{"j\\":"étais"},"futur":{"je":"serai"},"conditionnel":{"je":"serais"}},"avoir":{"present":{"je":"ai","tu":"as","il/elle":"a","nous":"avons","vous":"avez","ils/elles":"ont"},"passé composé":{"j\\":"ai eu"},"imparfait":{"tu":"avais"},"futur":{"tu":"auras"},"conditionnel":{"tu":"aurais"}},"aller":{"present":{"je":"vais","tu":"vas","il/elle":"va","nous":"allons","vous":"allez","ils/elles":"vont"},"passé composé":{"je":"suis allé(e)"},"imparfait":{"il/elle":"allait"},"futur":{"il/elle":"ira"},"conditionnel":{"il/elle":"irait"}},"parler":{"present":{"je":"parle","tu":"parles","il/elle":"parle","nous":"parlons","vous":"parlez","ils/elles":"parlent"},"passé composé":{"tu":"as parlé"},"imparfait":{"vous":"parliez"},"futur":{"vous":"parlerez"},"conditionnel":{"vous":"parleriez"}},"manger":{"present":{"je":"mange","tu":"manges","il/elle":"mange","nous":"mangeons","vous":"mangez","ils/elles":"mangent"},"passé composé":{"j\\":"ai mangé"},"imparfait":{"je":"mangeais"},"futur":{"je":"mangerai"},"conditionnel":{"je":"mangerais"}},"finir":{"present":{"je":"finis","tu":"finis","il/elle":"finit","nous":"finissons","vous":"finissez","ils/elles":"finissent"},"passé composé":{"il/elle":"a fini"},"imparfait":{"ils/elles":"finissaient"},"futur":{"ils/elles":"finiront"},"conditionnel":{"ils/elles":"finiraient"}},"vendre":{"present":{"je":"vends","tu":"vends","il/elle":"vend","nous":"vendons","vous":"vendez","ils/elles":"vendent"}},"faire":{"present":{"je":"fais","tu":"fais","il/elle":"fait","nous":"faisons","vous":"faites","ils/elles":"font"},"passé composé":{"j\\":"ai fait"},"imparfait":{"nous":"faisions"},"futur":{"nous":"ferons"},"conditionnel":{"nous":"ferions"}},"venir":{"passé composé":{"je":"suis venu(e)"},"imparfait":{"je":"venais"},"futur":{"je":"viendrai"},"conditionnel":{"je":"viendrais"}},"prendre":{"passé composé":{"nous":"avons pris"},"imparfait":{"tu":"prenais"},"futur":{"tu":"prendras"},"conditionnel":{"tu":"prendrais"}},"voir":{"passé composé":{"vous":"avez vu"},"imparfait":{"il/elle":"voyait"},"futur":{"il/elle":"verra"},"conditionnel":{"il/elle":"verrait"}},"pouvoir":{"passé composé":{"ils/elles":"ont pu"},"imparfait":{"nous":"pouvions"},"futur":{"nous":"pourrons"},"conditionnel":{"nous":"pourrions"}},"vouloir":{"passé composé":{"j\\":"ai voulu"},"imparfait":{"vous":"vouliez"},"futur":{"vous":"voudrez"},"conditionnel":{"vous":"voudriez"}}};
-  VERBS = [{"verb":"être","en":"to be","category":"irregular","level":"A1","tenses":["present","passé composé","imparfait","futur","conditionnel"]},{"verb":"avoir","en":"to have","category":"irregular","level":"A1","tenses":["present","passé composé","imparfait","futur","conditionnel"]},{"verb":"aller","en":"to go","category":"irregular","level":"A1","tenses":["present","passé composé","imparfait","futur","conditionnel"]},{"verb":"parler","en":"to speak","category":"er-verb","level":"A1","tenses":["present","passé composé","imparfait","futur","conditionnel"]},{"verb":"manger","en":"to eat","category":"er-verb","level":"A1","tenses":["present","passé composé","imparfait","futur","conditionnel"]},{"verb":"finir","en":"to finish","category":"ir-verb","level":"A2","tenses":["present","passé composé","imparfait","futur","conditionnel"]},{"verb":"vendre","en":"to sell","category":"re-verb","level":"A2","tenses":["present"]},{"verb":"faire","en":"to do/make","category":"irregular","level":"A1","tenses":["present","passé composé","imparfait","futur","conditionnel"]},{"verb":"venir","en":"to come","category":"irregular","level":"B1","tenses":["passé composé","imparfait","futur","conditionnel"]},{"verb":"prendre","en":"to take","category":"irregular","level":"B1","tenses":["passé composé","imparfait","futur","conditionnel"]},{"verb":"voir","en":"to see","category":"irregular","level":"B1","tenses":["passé composé","imparfait","futur","conditionnel"]},{"verb":"pouvoir","en":"can/to be able","category":"irregular","level":"B1","tenses":["passé composé","imparfait","futur","conditionnel"]},{"verb":"vouloir","en":"to want","category":"irregular","level":"B1","tenses":["passé composé","imparfait","futur","conditionnel"]}];
-
-  const settings = loadSettings();
-  soundOn = settings.sound !== false;
-  document.getElementById('sound-btn').textContent = soundOn ? '🔊' : '🔇';
-  if (soundOn) document.getElementById('sound-btn').classList.add('active');
-
-  updateStreak();
-  document.getElementById('stat-streak').textContent = getStreak();
+  // Build nested CONJ map from flat CONJUGATIONS array (Part 6)
+  CONJ = buildConjMap();
 
   populateVerbSelect();
 
-  // Pre-warm Chrome's speech synthesis engine so it's ready before the first
-  // correct match — avoids a 1-5 second freeze on first speak() call in Chrome
+  // Pre-warm Chrome's speech synthesis engine to avoid first-call freeze
   if (window.speechSynthesis) {
     window.speechSynthesis.getVoices();
     window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
   }
 
-  startRound();
+  // Show profile selection — startRound() called after selectProfile()
+  showProfileOverlay();
 }
 
 window.addEventListener('DOMContentLoaded', init);

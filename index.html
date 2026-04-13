@@ -17,6 +17,14 @@
       <div class="stat-item">✓ <span class="stat-num" id="stat-correct">0</span></div>
       <div class="stat-item">✗ <span class="stat-num" id="stat-wrong">0</span></div>
     </div>
+    <select class="lang-select" id="lang-select" onchange="setLanguage(this.value)" title="Native language">
+      <option value="en">EN</option>
+      <option value="nl">NL</option>
+      <option value="de">DE</option>
+    </select>
+    <button class="icon-btn profile-switcher-btn" id="profile-btn" onclick="showProfileOverlay()" title="Switch profile">
+      👤 <span id="profile-name-display">—</span>
+    </button>
     <button class="icon-btn active" id="sound-btn" onclick="toggleSound()" title="Toggle sound">🔊</button>
     <button class="icon-btn" onclick="showDashboard()">Progress</button>
   </div>
@@ -39,10 +47,11 @@
       <button class="mode-tab" onclick="setMode('gender',this)">Gender</button>
       <button class="mode-tab" onclick="setMode('antonyms',this)">Antonyms</button>
       <button class="mode-tab" onclick="setMode('conjugation',this)">Conjugation</button>
+      <button class="mode-tab" onclick="setMode('phrases',this)">Phrases</button>
     </div>
 
     <!-- Mode description -->
-    <div class="mode-desc" id="mode-desc">Match each French word to its English translation.</div>
+    <div class="mode-desc" id="mode-desc">Match each French word to its translation.</div>
 
     <!-- Level tabs -->
     <div class="level-tabs">
@@ -80,14 +89,14 @@
   </div>
 
   <!-- Column labels -->
-  <div class="col-labels">
+  <div class="col-labels" id="col-labels">
     <div class="col-label" id="label-l">FRANÇAIS</div>
     <div></div>
     <div class="col-label" id="label-r">ENGLISH</div>
   </div>
 
   <!-- Arena -->
-  <div class="arena">
+  <div class="arena" id="arena">
     <div class="grid" id="grid-l"></div>
     <div class="divider-col"><div class="divider-line"></div></div>
     <div class="grid" id="grid-r"></div>
@@ -95,6 +104,14 @@
 
   <!-- Feedback -->
   <div class="feedback" id="fb"></div>
+
+  <!-- Phrases card (shown only in Phrases mode) -->
+  <div class="phrases-card" id="phrases-card" style="display:none">
+    <div class="phrase-counter" id="phrase-counter">1 / 10</div>
+    <div class="phrase-fr" id="phrase-fr"></div>
+    <div class="phrase-choices" id="phrase-choices"></div>
+    <div class="phrase-feedback" id="phrase-feedback"></div>
+  </div>
 
   <!-- Round end -->
   <div class="round-end" id="round-end" style="display:none">
@@ -139,6 +156,24 @@
   </div>
 </div>
 
+<!-- Profile selection overlay -->
+<div class="overlay" id="profile-overlay">
+  <div class="dashboard" onclick="event.stopPropagation()">
+    <h2>
+      Who's practicing?
+      <button class="close-btn" id="profile-close-btn" onclick="closeProfileOverlay()" style="display:none">✕</button>
+    </h2>
+    <div id="profile-list"></div>
+    <div id="add-profile-row" style="display:flex">
+      <input type="text" id="profile-name-input" class="profile-name-input"
+             placeholder="New profile name…" maxlength="20"
+             onkeydown="if(event.key==='Enter') addProfile()">
+      <button class="add-profile-btn" onclick="addProfile()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script src="database.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
