@@ -8,116 +8,198 @@
 </head>
 <body>
 
-<!-- Header -->
-<header class="app-header">
+<!-- Zone 1: Header -->
+<header class="zone1">
   <div class="app-title">Pratique française</div>
   <div class="header-right">
-    <div class="stats-bar">
-      <div class="stat-item">🔥 <span class="stat-num" id="stat-streak">0</span></div>
-      <div class="stat-item">✓ <span class="stat-num" id="stat-correct">0</span></div>
-      <div class="stat-item">✗ <span class="stat-num" id="stat-wrong">0</span></div>
-    </div>
     <select class="lang-select" id="lang-select" onchange="setLanguage(this.value)" title="Native language">
-      <option value="en">EN</option>
-      <option value="nl">NL</option>
-      <option value="de">DE</option>
+      <option value="en" id="lang-opt-en">English</option>
+      <option value="nl" id="lang-opt-nl">Nederlands</option>
+      <option value="de" id="lang-opt-de">Deutsch</option>
+      <option value="fr" id="lang-opt-fr">Fran\u00e7ais</option>
     </select>
+    <button class="icon-btn" id="about-btn" onclick="showAbout()">About</button>
     <button class="icon-btn profile-switcher-btn" id="profile-btn" onclick="showProfileOverlay()" title="Switch profile">
       👤 <span id="profile-name-display">—</span>
     </button>
     <button class="icon-btn active" id="sound-btn" onclick="toggleSound()" title="Toggle sound">🔊</button>
-    <button class="icon-btn" onclick="showDashboard()">Progress</button>
+    <button class="icon-btn" id="progress-btn" onclick="showDashboard()">Progress</button>
   </div>
 </header>
+
+<!-- Zone 2: Controls -->
+<div class="zone2" id="controls">
+
+  <!-- Mode group tabs -->
+  <div class="mode-groups" id="mode-tabs">
+    <div class="mode-group">
+      <span class="mode-group-label" id="group-words-label">Words</span>
+      <button class="mode-tab active" data-mode="vocab" onclick="setMode('vocab',this)">Vocabulary</button>
+      <button class="mode-tab" data-mode="gender" onclick="setMode('gender',this)">Gender</button>
+      <button class="mode-tab" data-mode="wordrel" onclick="setMode('wordrel',this)">Word Relationships</button>
+    </div>
+    <div class="mode-group-sep">|</div>
+    <div class="mode-group">
+      <span class="mode-group-label" id="group-verbs-label">Verbs</span>
+      <button class="mode-tab" data-mode="conjugation" onclick="setMode('conjugation',this)">Conjugation</button>
+    </div>
+    <div class="mode-group-sep">|</div>
+    <div class="mode-group">
+      <span class="mode-group-label" id="group-lang-label">Language</span>
+      <button class="mode-tab" data-mode="grammar" onclick="setMode('grammar',this)">Grammar</button>
+      <button class="mode-tab" data-mode="phrases" onclick="setMode('phrases',this)">Phrases</button>
+    </div>
+  </div>
+
+  <!-- Mode description + direction toggle -->
+  <div class="desc-dir-row">
+    <div class="mode-desc" id="mode-desc">Match each French word to its translation.</div>
+    <div id="direction-row" style="display:none">
+      <button class="direction-btn" id="direction-btn" onclick="toggleDirection()">FR → EN</button>
+    </div>
+  </div>
+
+  <!-- Level tabs -->
+  <div class="level-tabs" id="level-tabs">
+    <button class="level-tab active" data-level="A1" onclick="setLevel('A1',this)">Beginner</button>
+    <button class="level-tab" data-level="A2" onclick="setLevel('A2',this)">Elementary</button>
+    <button class="level-tab" data-level="B1" onclick="setLevel('B1',this)">Intermediate</button>
+    <button class="level-tab" data-level="B2" onclick="setLevel('B2',this)">Advanced</button>
+    <button class="level-tab" data-level="C1" onclick="setLevel('C1',this)">Expert</button>
+  </div>
+
+  <!-- Topic filter (vocab / gender only) -->
+  <div class="topic-tabs" id="topic-row" style="display:none">
+    <button class="topic-tab active" data-topic="all"      onclick="setTopic('all',this)">All</button>
+    <button class="topic-tab" data-topic="everyday"        onclick="setTopic('everyday',this)">Everyday</button>
+    <button class="topic-tab" data-topic="food"            onclick="setTopic('food',this)">Food</button>
+    <button class="topic-tab" data-topic="family"          onclick="setTopic('family',this)">Family</button>
+    <button class="topic-tab" data-topic="travel"          onclick="setTopic('travel',this)">Travel</button>
+    <button class="topic-tab" data-topic="work"            onclick="setTopic('work',this)">Work</button>
+    <button class="topic-tab" data-topic="nature"          onclick="setTopic('nature',this)">Nature</button>
+    <button class="topic-tab" data-topic="body"            onclick="setTopic('body',this)">Body</button>
+    <button class="topic-tab" data-topic="school"          onclick="setTopic('school',this)">School</button>
+    <button class="topic-tab" data-topic="shopping"        onclick="setTopic('shopping',this)">Shopping</button>
+    <button class="topic-tab" data-topic="animals"         onclick="setTopic('animals',this)">Animals</button>
+    <button class="topic-tab" data-topic="home"            onclick="setTopic('home',this)">Home</button>
+  </div>
+
+  <!-- Word Relationships filter (wordrel only) -->
+  <div class="topic-tabs" id="wordrel-filter-row" style="display:none">
+    <button class="topic-tab active" data-wrfilter="all"     onclick="setWordRelFilter('all',this)">All</button>
+    <button class="topic-tab" data-wrfilter="antonym"        onclick="setWordRelFilter('antonym',this)">Antonyms</button>
+    <button class="topic-tab" data-wrfilter="synonym"        onclick="setWordRelFilter('synonym',this)">Synonyms</button>
+  </div>
+
+  <!-- Grammar category filter (grammar only) -->
+  <div class="topic-tabs" id="grammar-filter-row" style="display:none">
+    <button class="topic-tab active" data-gramcat="all"      onclick="setGrammarCategory('all',this)">All</button>
+  </div>
+
+  <!-- Verb selector (conjugation only) -->
+  <div class="verb-selector" id="verb-selector" style="display:none">
+    <label id="verb-label">Verb:</label>
+    <select class="verb-select" id="verb-select" onchange="setVerb()"></select>
+  </div>
+
+  <!-- Difficulty selector (conjugation only) -->
+  <div class="verb-selector" id="difficulty-selector" style="display:none">
+    <label id="difficultyLevel-label">Difficulty:</label>
+    <select class="verb-select" id="difficulty-select" onchange="setDifficulty()">
+      <option value="all" data-diff-key="all">All</option>
+      <option value="easy" data-diff-key="easy">Easy</option>
+      <option value="hard" data-diff-key="hard">Hard</option>
+    </select>
+  </div>
+
+  <!-- Tense selector (conjugation only) -->
+  <div class="verb-selector" id="tense-selector" style="display:none">
+    <label id="tense-label">Tense:</label>
+    <select class="verb-select" id="tense-select" onchange="setTense()">
+      <option value="all" data-tense-key="all">All</option>
+      <option value="present" data-tense-key="tensePresent">Présent</option>
+      <option value="passé composé" data-tense-key="tensePerfect">Passé composé</option>
+      <option value="imparfait" data-tense-key="tenseImperfect">Imparfait</option>
+      <option value="futur" data-tense-key="tenseFuture">Futur</option>
+      <option value="conditionnel" data-tense-key="tenseConditional">Conditionnel</option>
+    </select>
+  </div>
+
+</div>
 
 <!-- Progress bar -->
 <div class="progress-wrap">
   <div class="progress-fill" id="prog"></div>
 </div>
 
-<!-- Main -->
-<main class="app-body">
+<!-- Zone 3: Practice area -->
+<main class="zone3">
 
-  <!-- Controls -->
-  <div class="controls">
+  <!-- Practice card (shown during active round) -->
+  <div class="practice-card" id="practice-card">
 
-    <!-- Mode tabs -->
-    <div class="mode-tabs">
-      <button class="mode-tab active" onclick="setMode('vocab',this)">Vocabulary</button>
-      <button class="mode-tab" onclick="setMode('gender',this)">Gender</button>
-      <button class="mode-tab" onclick="setMode('antonyms',this)">Antonyms</button>
-      <button class="mode-tab" onclick="setMode('conjugation',this)">Conjugation</button>
-      <button class="mode-tab" onclick="setMode('phrases',this)">Phrases</button>
+    <!-- Feedback line (arena modes) -->
+    <div class="feedback" id="fb" style="display:none"></div>
+
+    <!-- Column labels (vocab / conjugation modes) -->
+    <div class="col-labels" id="col-labels" style="display:none">
+      <div class="col-label" id="label-l">FRANÇAIS</div>
+      <div></div>
+      <div class="col-label" id="label-r">ENGLISH</div>
     </div>
 
-    <!-- Mode description -->
-    <div class="mode-desc" id="mode-desc">Match each French word to its translation.</div>
-
-    <!-- Level tabs -->
-    <div class="level-tabs">
-      <button class="level-tab active" onclick="setLevel('A1',this)">Beginner · 5</button>
-      <button class="level-tab" onclick="setLevel('A2',this)">Elementary · 8</button>
-      <button class="level-tab" onclick="setLevel('B1',this)">Intermediate · 12</button>
-      <button class="level-tab" onclick="setLevel('B2',this)">Advanced · 16</button>
-      <button class="level-tab" onclick="setLevel('C1',this)">Expert · 20</button>
+    <!-- Match arena (vocab / conjugation) -->
+    <div class="arena" id="arena" style="display:none">
+      <div class="grid" id="grid-l"></div>
+      <div class="divider-col"><div class="divider-line"></div></div>
+      <div class="grid" id="grid-r"></div>
     </div>
 
-    <!-- Topic filter -->
-    <div class="topic-tabs" id="topic-row">
-      <button class="topic-tab active" onclick="setTopic('all',this)">All</button>
-      <button class="topic-tab" onclick="setTopic('everyday',this)">Everyday</button>
-      <button class="topic-tab" onclick="setTopic('food',this)">Food</button>
-      <button class="topic-tab" onclick="setTopic('family',this)">Family</button>
-      <button class="topic-tab" onclick="setTopic('travel',this)">Travel</button>
-      <button class="topic-tab" onclick="setTopic('work',this)">Work</button>
-      <button class="topic-tab" onclick="setTopic('nature',this)">Nature</button>
-      <button class="topic-tab" onclick="setTopic('body',this)">Body</button>
-      <button class="topic-tab" onclick="setTopic('school',this)">School</button>
-      <button class="topic-tab" onclick="setTopic('shopping',this)">Shopping</button>
-      <button class="topic-tab" onclick="setTopic('animals',this)">Animals</button>
-      <button class="topic-tab" onclick="setTopic('home',this)">Home</button>
+    <!-- Gender single-word card -->
+    <div class="gender-card mode-card" id="gender-card" style="display:none">
+      <div class="phrase-counter" id="gender-counter">1 / 10</div>
+      <div class="gender-word-display" id="gender-word-display"></div>
+      <div class="gender-buttons">
+        <button class="gender-btn le-btn" id="btn-le" onclick="checkGender('M')">LE</button>
+        <button class="gender-btn la-btn" id="btn-la" onclick="checkGender('F')">LA</button>
+      </div>
+      <div class="gender-feedback" id="gender-feedback"></div>
     </div>
 
-    <!-- Verb selector (conjugation only) -->
-    <div class="verb-selector" id="verb-selector" style="display:none">
-      <label>Verb:</label>
-      <select class="verb-select" id="verb-select" onchange="setVerb()"></select>
-      <label>Tense:</label>
-      <select class="tense-select" id="tense-select" onchange="setTense()"></select>
+    <!-- Phrases card -->
+    <div class="phrases-card mode-card" id="phrases-card" style="display:none">
+      <div class="phrase-counter" id="phrase-counter">1 / 10</div>
+      <div class="phrase-fr" id="phrase-fr"></div>
+      <div class="phrase-choices" id="phrase-choices"></div>
+      <div class="phrase-feedback" id="phrase-feedback"></div>
+    </div>
+
+    <!-- Grammar card -->
+    <div class="phrases-card mode-card" id="grammar-card" style="display:none">
+      <div class="phrase-counter" id="grammar-counter">1 / 10</div>
+      <div class="grammar-category" id="grammar-category"></div>
+      <div class="phrase-fr" id="grammar-question"></div>
+      <div class="phrase-choices" id="grammar-choices"></div>
+      <div class="phrase-feedback" id="grammar-feedback"></div>
+    </div>
+
+    <!-- Word Relationships card -->
+    <div class="phrases-card mode-card" id="wordrel-card" style="display:none">
+      <div class="phrase-counter" id="wordrel-counter">1 / 10</div>
+      <div class="wordrel-label" id="wordrel-label"></div>
+      <div class="phrase-fr" id="wordrel-word"></div>
+      <div class="phrase-choices" id="wordrel-choices"></div>
+      <div class="phrase-feedback" id="wordrel-feedback"></div>
     </div>
 
   </div>
 
-  <!-- Column labels -->
-  <div class="col-labels" id="col-labels">
-    <div class="col-label" id="label-l">FRANÇAIS</div>
-    <div></div>
-    <div class="col-label" id="label-r">ENGLISH</div>
-  </div>
-
-  <!-- Arena -->
-  <div class="arena" id="arena">
-    <div class="grid" id="grid-l"></div>
-    <div class="divider-col"><div class="divider-line"></div></div>
-    <div class="grid" id="grid-r"></div>
-  </div>
-
-  <!-- Feedback -->
-  <div class="feedback" id="fb"></div>
-
-  <!-- Phrases card (shown only in Phrases mode) -->
-  <div class="phrases-card" id="phrases-card" style="display:none">
-    <div class="phrase-counter" id="phrase-counter">1 / 10</div>
-    <div class="phrase-fr" id="phrase-fr"></div>
-    <div class="phrase-choices" id="phrase-choices"></div>
-    <div class="phrase-feedback" id="phrase-feedback"></div>
-  </div>
-
-  <!-- Round end -->
+  <!-- Round summary (covers all of Zone 3) -->
   <div class="round-end" id="round-end" style="display:none">
     <div class="round-score" id="round-score"></div>
     <div class="round-sub" id="round-sub"></div>
-    <button class="next-btn" onclick="nextRound()">Next round →</button>
+    <div class="round-details" id="round-details"></div>
+    <button class="next-btn" id="round-next-btn" onclick="nextRound()">Next round →</button>
   </div>
 
 </main>
@@ -126,33 +208,37 @@
 <div class="overlay hidden" id="overlay" onclick="hideDashboard()">
   <div class="dashboard" onclick="event.stopPropagation()">
     <h2>
-      Progress
+      <span id="dash-title">Progress</span>
       <button class="close-btn" onclick="hideDashboard()">✕</button>
     </h2>
 
     <div class="dash-stats">
       <div class="dash-stat">
-        <div class="dash-stat-label">Words practiced</div>
+        <div class="dash-stat-label" id="dash-label-total">Items practiced</div>
         <div class="dash-stat-value" id="dash-total">0</div>
       </div>
       <div class="dash-stat">
-        <div class="dash-stat-label">Mastered</div>
+        <div class="dash-stat-label" id="dash-label-mastered">Mastered</div>
         <div class="dash-stat-value" id="dash-mastered">0</div>
       </div>
       <div class="dash-stat">
-        <div class="dash-stat-label">Streak</div>
+        <div class="dash-stat-label" id="dash-label-streak">Streak</div>
         <div class="dash-stat-value" id="dash-streak">0 days</div>
+        <div class="dash-stat-sub" id="dash-last-practice"></div>
       </div>
       <div class="dash-stat">
-        <div class="dash-stat-label">Due for review</div>
+        <div class="dash-stat-label" id="dash-label-due">Due for review</div>
         <div class="dash-stat-value" id="dash-due">0</div>
       </div>
     </div>
 
-    <div class="dash-section-title">BY CATEGORY</div>
-    <div id="cat-breakdown"></div>
+    <div class="dash-section-title" id="dash-label-bests">PERSONAL BESTS</div>
+    <div class="bests-grid" id="bests-grid"></div>
 
-    <button class="reset-btn" onclick="resetProgress()">Reset all progress</button>
+    <div class="dash-section-title" id="dash-label-bymode">PROGRESS BY MODE</div>
+    <div id="mode-progress"></div>
+
+    <button class="reset-btn" id="reset-btn" onclick="resetProgress()">Reset all progress</button>
   </div>
 </div>
 
@@ -160,7 +246,7 @@
 <div class="overlay hidden" id="profile-overlay">
   <div class="dashboard" onclick="event.stopPropagation()">
     <h2>
-      Who's practicing?
+      <span id="profile-title">Who's practicing?</span>
       <button class="close-btn" id="profile-close-btn" onclick="closeProfileOverlay()" style="display:none">✕</button>
     </h2>
     <div id="profile-list"></div>
@@ -168,7 +254,40 @@
       <input type="text" id="profile-name-input" class="profile-name-input"
              placeholder="New profile name…" maxlength="20"
              onkeydown="if(event.key==='Enter') addProfile()">
-      <button class="add-profile-btn" onclick="addProfile()">Add</button>
+      <button class="add-profile-btn" id="add-profile-btn" onclick="addProfile()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- About overlay -->
+<div class="overlay hidden" id="about-overlay" onclick="closeAbout()">
+  <div class="dashboard about-panel" onclick="event.stopPropagation()">
+    <h2>
+      <span id="about-title">About Pratique française</span>
+      <button class="close-btn" onclick="closeAbout()">✕</button>
+    </h2>
+    <p id="about-text" class="about-text"></p>
+  </div>
+</div>
+
+<!-- Welcome screen overlay -->
+<div class="overlay hidden" id="welcome-overlay" onclick="closeWelcomeScreen()">
+  <div class="dashboard welcome-panel" onclick="event.stopPropagation()">
+    <h2>
+      <span id="welcome-name">Welcome!</span>
+      <button class="close-btn" onclick="closeWelcomeScreen()" style="display:none">✕</button>
+    </h2>
+    <div id="welcome-progress" class="welcome-progress"></div>
+    <div id="welcome-choose" class="welcome-choose">
+      <p class="welcome-prompt" id="welcome-prompt">What would you like to practice?</p>
+      <div class="welcome-modes">
+        <button class="welcome-mode-btn" onclick="startFromWelcome('vocab')">Vocabulary</button>
+        <button class="welcome-mode-btn" onclick="startFromWelcome('gender')">Gender</button>
+        <button class="welcome-mode-btn" onclick="startFromWelcome('wordrel')">Word Relationships</button>
+        <button class="welcome-mode-btn" onclick="startFromWelcome('conjugation')">Conjugation</button>
+        <button class="welcome-mode-btn" onclick="startFromWelcome('phrases')">Phrases</button>
+        <button class="welcome-mode-btn" onclick="startFromWelcome('grammar')">Grammar</button>
+      </div>
     </div>
   </div>
 </div>

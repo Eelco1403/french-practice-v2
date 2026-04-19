@@ -1,0 +1,162 @@
+Read CLAUDE.md before starting. Read the current app.js and style.css in full before writing any code. You are making several contained changes. Changes go in app.js and style.css only. Do not touch index.html, database.js or the Excel file. Complete ALL tasks in order. Do not stop early.
+
+---
+
+TASK 1 — RENAME LEVEL LABELS
+
+In the TRANSLATIONS object in app.js, update the level label keys for all 4 languages as follows:
+
+ENGLISH:
+- beginner: 'Foundation'
+- elementary: 'Essential'
+- intermediate: 'Intermediate'
+- advanced: 'Advanced'
+- expert: 'Proficient'
+
+DUTCH:
+- beginner: 'Basis'
+- elementary: 'Essentieel'
+- intermediate: 'Gemiddeld'
+- advanced: 'Gevorderd'
+- expert: 'Vaardig'
+
+GERMAN:
+- beginner: 'Grundlagen'
+- elementary: 'Wesentlich'
+- intermediate: 'Mittelstufe'
+- advanced: 'Fortgeschritten'
+- expert: 'Kompetent'
+
+FRENCH:
+- beginner: 'Fondation'
+- elementary: 'Essentiel'
+- intermediate: 'Intermédiaire'
+- advanced: 'Avancé'
+- expert: 'Maîtrise'
+
+Only change the label text — do not change the key names or the data-level attributes.
+
+---
+
+TASK 2 — ADD C2 LEVEL TAB
+
+In index.html... wait, do not touch index.html. Instead in app.js, find where level tabs are rendered or initialised and add C2 as a new level after C1.
+
+In the TRANSLATIONS object add a new key 'mastery' for each language:
+- English: 'Mastery'
+- Dutch: 'Meesterschap'
+- German: 'Meisterschaft'
+- French: 'Excellence'
+
+In index.html... since we cannot touch index.html, add the C2 tab dynamically in JavaScript. In the init() function, after the existing level tabs are set up, add a new level tab button for C2 with data-level="C2" and label from T('mastery'). Insert it after the C1 tab.
+
+Also add C2 to the LEVEL_MIX constant:
+C2: [{ level: 'C2', weight: 0.5 }, { level: 'C1', weight: 0.3 }, { level: 'B2', weight: 0.2 }]
+
+And add C2 to the applyTranslations() level tab translation loop so it translates correctly when language changes.
+
+---
+
+TASK 3 — GDPR PRIVACY NOTICE IN ABOUT TEXT
+
+In the TRANSLATIONS object in app.js, find the aboutText field for each language and append the following privacy notice to the existing text:
+
+ENGLISH: " All your practice data is stored locally on your device only. Nothing is sent to any server. No personal data is collected or shared."
+
+DUTCH: " Al je oefengegevens worden alleen lokaal op je apparaat opgeslagen. Er wordt niets naar een server verzonden. Er worden geen persoonlijke gegevens verzameld of gedeeld."
+
+GERMAN: " Alle deine Übungsdaten werden nur lokal auf deinem Gerät gespeichert. Es werden keine Daten an einen Server gesendet. Es werden keine persönlichen Daten gesammelt oder weitergegeben."
+
+FRENCH: " Toutes vos données de pratique sont stockées uniquement sur votre appareil. Rien n'est envoyé à un serveur. Aucune donnée personnelle n'est collectée ou partagée."
+
+---
+
+TASK 4 — REMOVE PERSONAL BESTS FROM PROGRESS PANEL
+
+In the showDashboard() function in app.js, find the Personal Bests section and remove it completely:
+- Remove the bestsHtml generation code
+- Remove the line that sets innerHTML of bests-grid
+- Remove the dash-label-bests translation reference from the ids object in applyTranslations()
+
+Also remove the PERSONAL BESTS section title from the dashboard rendering.
+
+The space freed up will be used in Task 5.
+
+---
+
+TASK 5 — ADD FOCUS RECOMMENDATION TO PROGRESS PANEL
+
+After removing Personal Bests, add a "Focus here next" recommendation at the top of the Progress panel, just below the stats grid.
+
+The recommendation logic:
+1. Look through all modes and their subcategories
+2. Find the mode/subcategory combination with the lowest coverage percentage that has been started (seen > 0) OR the mode with zero items practiced
+3. Generate a short recommendation string
+
+Examples:
+- "You haven't started Futur tense yet — try Conjugation with Futur selected"
+- "Your weakest area is Food vocabulary — try Vocabulary with Food selected"
+- "You haven't started Phrases yet — give it a try"
+
+Display it in a styled box below the stats grid — green left border, light background, 13px font. Must translate with UI language so add translation keys for the recommendation template strings in all 4 languages.
+
+If all areas are above 50% coverage, show: "Great progress! Keep practicing to maintain your knowledge."
+
+---
+
+TASK 6 — ADD COLLAPSIBLE HOW-TO EXPLANATION PER MODE
+
+Add a small "?" button inside the practice area for each mode. When clicked it toggles a brief explanation panel. Collapsed by default every session.
+
+BUTTON: Small, round, 24px diameter, positioned top-right inside the practice card. Grey border, white background, "?" label. When panel is open button shows "✕".
+
+PANEL: Appears below the button, above the exercise content. Light grey background, rounded corners, 13px font. Closes when "✕" is clicked.
+
+Add explanation text for each mode in all 4 languages in the TRANSLATIONS object:
+
+ENGLISH explanations:
+- helpVocab: 'Match each French word to its translation. Click a word on the left, then click its match on the right. Correct pairs turn green.'
+- helpGender: 'Decide if the French noun is masculine (LE) or feminine (LA). Click the correct button. The translation is shown below the word for reference.'
+- helpWordrel: 'Find the related word. Select the antonym (opposite) or synonym (similar meaning) of the French word shown.'
+- helpConjugation: 'Match each pronoun to its correct verb form. Click a pronoun on the left, then its matching conjugation on the right.'
+- helpGrammar: 'Choose the correct French answer. An explanation is shown after each answer to help you understand the rule.'
+- helpPhrases: 'Choose the correct translation for the French phrase shown. Focus on meaning, not word-for-word translation.'
+- helpLearn: 'Watch each word pair carefully. After 5 pairs you will be asked to match them from memory.'
+
+DUTCH explanations:
+- helpVocab: 'Koppel elk Frans woord aan de juiste vertaling. Klik een woord links, dan de bijbehorende vertaling rechts.'
+- helpGender: 'Bepaal of het Franse zelfstandig naamwoord mannelijk (LE) of vrouwelijk (LA) is.'
+- helpWordrel: 'Zoek het verwante woord. Selecteer het antoniem of synoniem van het getoonde Franse woord.'
+- helpConjugation: 'Koppel elk voornaamwoord aan de juiste werkwoordsvorm.'
+- helpGrammar: 'Kies het juiste Franse antwoord. Na elk antwoord verschijnt een uitleg.'
+- helpPhrases: 'Kies de juiste vertaling van de getoonde Franse zin.'
+- helpLearn: 'Bekijk elk woordpaar goed. Na 5 paren word je gevraagd ze uit je geheugen te koppelen.'
+
+GERMAN explanations:
+- helpVocab: 'Ordne jedes französische Wort seiner Übersetzung zu. Klicke ein Wort links, dann die passende Übersetzung rechts.'
+- helpGender: 'Entscheide ob das französische Substantiv männlich (LE) oder weiblich (LA) ist.'
+- helpWordrel: 'Finde das verwandte Wort. Wähle das Antonym oder Synonym des gezeigten französischen Wortes.'
+- helpConjugation: 'Ordne jedes Pronomen der richtigen Verbform zu.'
+- helpGrammar: 'Wähle die richtige französische Antwort. Nach jeder Antwort erscheint eine Erklärung.'
+- helpPhrases: 'Wähle die richtige Übersetzung für den gezeigten französischen Satz.'
+- helpLearn: 'Beobachte jedes Wortpaar genau. Nach 5 Paaren wirst du gebeten sie aus dem Gedächtnis zuzuordnen.'
+
+FRENCH explanations:
+- helpVocab: 'Associe chaque mot français à sa traduction. Clique un mot à gauche, puis sa correspondance à droite.'
+- helpGender: 'Décide si le nom français est masculin (LE) ou féminin (LA).'
+- helpWordrel: 'Trouve le mot lié. Sélectionne l antonyme ou le synonyme du mot français affiché.'
+- helpConjugation: 'Associe chaque pronom à la forme verbale correcte.'
+- helpGrammar: 'Choisis la bonne réponse française. Une explication apparaît après chaque réponse.'
+- helpPhrases: 'Choisis la bonne traduction pour la phrase française affichée.'
+- helpLearn: 'Observe chaque paire de mots attentivement. Après 5 paires tu devras les associer de mémoire.'
+
+Implementation:
+- Add a helpBtn element dynamically in JavaScript for each mode when the mode starts
+- Position it top-right inside the practice-card using absolute positioning
+- Toggle a helpPanel div that contains the explanation text
+- The panel must be hidden by default and shown/hidden on button click
+- Add CSS for the button and panel in style.css
+
+---
+
+After all tasks: update CLAUDE.md with what was changed. Do not modify index.html, database.js or French_Learning_Content_Database_v7.xlsx.
