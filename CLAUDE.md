@@ -276,6 +276,45 @@ Removed dead `const nativeLang = currentLang.toUpperCase()` in phrases feedback 
 ## Collapsible how-to help button per mode (2026-04-19) — tasks.txt Task 6
 **New feature:** A "?" button (24px, round) appears top-right inside the practice card for every mode. Clicking toggles a help panel with mode-specific explanation. Panel collapses on mode change. `ensureHelpBtn()` called from `startRound()`. Help text keys added to TRANSLATIONS in all 4 languages: `helpVocab`, `helpGender`, `helpWordrel`, `helpConjugation`, `helpGrammar`, `helpPhrases`, `helpLearn`. CSS added in style.css: `.help-btn`, `.help-panel`, `#help-container`. `position: relative` added to `.practice-card`.
 
+## GitHub push (2026-04-19)
+Commit: `5bfd4c1` — "v1 desktop - all fixes complete, ready for Learn mode"
+Pushed to: github.com/Eelco1403/french-practice-v2 (master)
+Included: all v1 fixes (findings 1–17, OBS 18–20b), tasks.txt Tasks 1–6, database.js, Deployment_Checklist.md, tasks.txt, French_Learning_Content_Database_v7.xlsx.
+
+## Learn mode added (2026-04-19) — tasks.txt Tasks 1–8
+**New mode:** "Learn" tab added to the Words group (before Vocabulary) in index.html.
+
+**Two-phase approach:**
+- Phase 1 (Flash): Shows 5 word pairs (native → French) one at a time with audio. Duration per pair is level-dependent: A1=3s, A2=2.5s, B1=2s, B2=1.5s, C1=1s, C2=0.5s (`LEARN_FLASH_DURATION` constant).
+- Phase 2 (Match): After all 5 pairs flash, the existing arena matching mechanic is used. Only 5 items, single-column grid.
+
+**Constants:** `LEARN_FLASH_DURATION` and `LEARN_BATCH_SIZE = 5` added near state section.
+
+**State:** `learnBatch`, `learnFlashIndex`, `learnFlashTimer` added.
+
+**Functions:** `startLearnRound()`, `startLearnFlash()`, `startLearnMatch()` added before the Sound section.
+
+**Integration:**
+- `startRound()`: learn branch added, hides learn-card in reset block
+- `applyModeUI()`: level-tabs shown, topic-row shown (same as vocab), modeDescKeys includes `learn: 'instrLearn'`
+- `applyTranslations()`: modeDescKeys and helpKeys updated to include learn
+- `nextRound()`: clears `learnFlashTimer` before restarting
+- Round summary / SM-2 / updateBest work automatically via existing `showRoundEnd()`
+
+**UI:** `learn-card` div added to index.html after wordrel-card. CSS classes `.learn-card`, `.learn-phase-label`, `.learn-flash-display`, `.learn-native-word`, `.learn-arrow`, `.learn-french-word`, `.learn-progress` added to style.css.
+
+**Translations:** `learn`, `instrLearn`, `learnPhase1`, `learnPhase2`, `learnReady` added to all 4 languages.
+
+## Learn mode welcome screen + help fix (2026-04-19)
+
+**Task 1 — Learn button on welcome screen:**
+- Learn button added as the first item in the welcome-modes grid in index.html, wrapped in `#learn-welcome-cell` (flex column) with a hidden `#learn-welcome-hint` div beneath it.
+- `showWelcomeScreen()` updated: `learn: T('learn')` added to `modeNames`; when `ids.length === 0` (brand-new profile) the Learn button gets green border/background and the hint div shows `T('newStartHere')`. Styling resets when the user has any practice history.
+- Translation key `newStartHere` added to all 4 languages: EN "New? Start here", NL "Nieuw? Begin hier", DE "Neu? Fang hier an", FR "Nouveau ? Commence ici".
+
+**Task 2 — Help text fix for Learn mode:**
+- `ensureHelpBtn()` helpKeys map was missing `learn: 'helpLearn'`. Added. Now the ? button in Learn mode correctly shows the helpLearn text in the active UI language.
+
 ## v2 planned features
 - Timed exercises — toggle per mode and difficulty
 - Conjugation sentence gap-fill

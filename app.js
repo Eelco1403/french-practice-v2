@@ -9,7 +9,7 @@ const TRANSLATIONS = {
     // language names
     langEN: 'English', langNL: 'Nederlands', langDE: 'Deutsch', langFR: 'Français',
     // mode tabs
-    vocab: 'Vocabulary', gender: 'Gender', conjugation: 'Conjugation',
+    learn: 'Learn', vocab: 'Vocabulary', gender: 'Gender', conjugation: 'Conjugation',
     phrases: 'Phrases', grammar: 'Grammar', wordrel: 'Word Relationships',
     // mode group labels
     groupWords: 'Words', groupVerbs: 'Verbs', groupLanguage: 'Language',
@@ -24,6 +24,7 @@ const TRANSLATIONS = {
     francais: 'FRANÇAIS', nativeLang: 'ENGLISH',
     pronoun: 'PRONOUN',
     // mode instructions
+    instrLearn: 'Watch each word pair. After 5 pairs you will match them from memory.',
     instrVocab: 'Match each French word to its translation.',
     instrGender: 'Is the noun masculine (LE) or feminine (LA)?',
     instrConjugation: 'Match each pronoun to the correct verb form.',
@@ -85,10 +86,14 @@ const TRANSLATIONS = {
     helpGrammar: 'Choose the correct French answer. An explanation is shown after each answer to help you understand the rule.',
     helpPhrases: 'Choose the correct translation for the French phrase shown. Focus on meaning, not word-for-word translation.',
     helpLearn: 'Watch each word pair carefully. After 5 pairs you will be asked to match them from memory.',
+    newStartHere: 'New? Start here',
+    learnPhase1: 'Memorise these words',
+    learnPhase2: 'Now match them from memory',
+    learnReady: 'Ready? Start matching!',
   },
   nl: {
     langEN: 'English', langNL: 'Nederlands', langDE: 'Deutsch', langFR: 'Français',
-    vocab: 'Woordenschat', gender: 'Geslacht', conjugation: 'Vervoeging',
+    learn: 'Leren', vocab: 'Woordenschat', gender: 'Geslacht', conjugation: 'Vervoeging',
     phrases: 'Zinnen', grammar: 'Grammatica', wordrel: 'Woordverhoudingen',
     groupWords: 'Woorden', groupVerbs: 'Werkwoorden', groupLanguage: 'Taal',
     beginner: 'Basis', elementary: 'Essentieel', intermediate: 'Gemiddeld',
@@ -98,6 +103,7 @@ const TRANSLATIONS = {
     school: 'School', shopping: 'Winkelen', animals: 'Dieren', home: 'Thuis',
     francais: 'FRANÇAIS', nativeLang: 'NEDERLANDS',
     pronoun: 'VOORNAAMWOORD',
+    instrLearn: 'Bekijk elk woordpaar. Na 5 paren koppel je ze uit je geheugen.',
     instrVocab: 'Koppel elk Frans woord aan de juiste vertaling.',
     instrGender: 'Is het zelfstandig naamwoord mannelijk (LE) of vrouwelijk (LA)?',
     instrConjugation: 'Koppel elk voornaamwoord aan de juiste werkwoordsvorm.',
@@ -152,10 +158,14 @@ const TRANSLATIONS = {
     helpGrammar: 'Kies het juiste Franse antwoord. Na elk antwoord verschijnt een uitleg.',
     helpPhrases: 'Kies de juiste vertaling van de getoonde Franse zin.',
     helpLearn: 'Bekijk elk woordpaar goed. Na 5 paren word je gevraagd ze uit je geheugen te koppelen.',
+    newStartHere: 'Nieuw? Begin hier',
+    learnPhase1: 'Onthoud deze woorden',
+    learnPhase2: 'Koppel ze nu uit je geheugen',
+    learnReady: 'Klaar? Begin met koppelen!',
   },
   de: {
     langEN: 'English', langNL: 'Nederlands', langDE: 'Deutsch', langFR: 'Français',
-    vocab: 'Wortschatz', gender: 'Geschlecht', conjugation: 'Konjugation',
+    learn: 'Lernen', vocab: 'Wortschatz', gender: 'Geschlecht', conjugation: 'Konjugation',
     phrases: 'Phrasen', grammar: 'Grammatik', wordrel: 'Wortbeziehungen',
     groupWords: 'Wörter', groupVerbs: 'Verben', groupLanguage: 'Sprache',
     beginner: 'Grundlagen', elementary: 'Wesentlich', intermediate: 'Mittelstufe',
@@ -165,6 +175,7 @@ const TRANSLATIONS = {
     school: 'Schule', shopping: 'Einkaufen', animals: 'Tiere', home: 'Zuhause',
     francais: 'FRANÇAIS', nativeLang: 'DEUTSCH',
     pronoun: 'PRONOMEN',
+    instrLearn: 'Beobachte jedes Wortpaar. Nach 5 Paaren ordnest du sie aus dem Gedächtnis zu.',
     instrVocab: 'Ordne jedes französische Wort der richtigen Übersetzung zu.',
     instrGender: 'Ist das Nomen männlich (LE) oder weiblich (LA)?',
     instrConjugation: 'Ordne jedes Pronomen der richtigen Verbform zu.',
@@ -219,10 +230,14 @@ const TRANSLATIONS = {
     helpGrammar: 'Wähle die richtige französische Antwort. Nach jeder Antwort erscheint eine Erklärung.',
     helpPhrases: 'Wähle die richtige Übersetzung für den gezeigten französischen Satz.',
     helpLearn: 'Beobachte jedes Wortpaar genau. Nach 5 Paaren wirst du gebeten sie aus dem Gedächtnis zuzuordnen.',
+    newStartHere: 'Neu? Fang hier an',
+    learnPhase1: 'Merke dir diese Wörter',
+    learnPhase2: 'Ordne sie jetzt aus dem Gedächtnis zu',
+    learnReady: 'Bereit? Fang an zu ordnen!',
   },
   fr: {
     langEN: 'English', langNL: 'Nederlands', langDE: 'Deutsch', langFR: 'Français',
-    vocab: 'Vocabulaire', gender: 'Genre', conjugation: 'Conjugaison',
+    learn: 'Apprendre', vocab: 'Vocabulaire', gender: 'Genre', conjugation: 'Conjugaison',
     phrases: 'Phrases', grammar: 'Grammaire', wordrel: 'Relations de mots',
     groupWords: 'Mots', groupVerbs: 'Verbes', groupLanguage: 'Langue',
     beginner: 'Fondation', elementary: 'Essentiel', intermediate: 'Intermédiaire',
@@ -232,6 +247,7 @@ const TRANSLATIONS = {
     school: 'École', shopping: 'Shopping', animals: 'Animaux', home: 'Maison',
     francais: 'FRANÇAIS', nativeLang: 'ENGLISH',
     pronoun: 'PRONOM',
+    instrLearn: 'Observe chaque paire de mots. Après 5 paires tu les associeras de mémoire.',
     instrVocab: 'Associe chaque mot français à sa traduction.',
     instrGender: 'Le nom est-il masculin (LE) ou féminin (LA) ?',
     instrConjugation: 'Associe chaque pronom à la forme correcte du verbe.',
@@ -286,6 +302,10 @@ const TRANSLATIONS = {
     helpGrammar: 'Choisis la bonne réponse française. Une explication apparaît après chaque réponse.',
     helpPhrases: 'Choisis la bonne traduction pour la phrase française affichée.',
     helpLearn: 'Observe chaque paire de mots attentivement. Après 5 paires tu devras les associer de mémoire.',
+    newStartHere: 'Nouveau ? Commence ici',
+    learnPhase1: 'Mémorise ces mots',
+    learnPhase2: 'Associe-les maintenant de mémoire',
+    learnReady: 'Prêt ? Commence à associer !',
   },
 };
 
@@ -438,14 +458,29 @@ function showWelcomeScreen() {
   
   // Update mode button labels based on current language
   const modeNames = {
-    vocab: T('vocab'), gender: T('gender'), wordrel: T('wordrel'),
+    learn: T('learn'), vocab: T('vocab'), gender: T('gender'), wordrel: T('wordrel'),
     conjugation: T('conjugation'), phrases: T('phrases'), grammar: T('grammar')
   };
   document.querySelectorAll('.welcome-mode-btn').forEach(btn => {
-    const mode = btn.getAttribute('onclick').match(/'(\w+)'/)[1];
-    btn.textContent = modeNames[mode] || mode;
+    const m = btn.getAttribute('onclick').match(/'(\w+)'/)[1];
+    btn.textContent = modeNames[m] || m;
   });
-  
+
+  // Highlight Learn button for brand-new profiles (0 items practiced)
+  const isNew = ids.length === 0;
+  const learnBtn  = document.getElementById('learn-welcome-btn');
+  const learnHint = document.getElementById('learn-welcome-hint');
+  if (learnBtn) {
+    learnBtn.style.borderColor      = isNew ? '#1D9E75' : '';
+    learnBtn.style.borderWidth      = isNew ? '2px' : '';
+    learnBtn.style.backgroundColor  = isNew ? '#f0f9f5' : '';
+    learnBtn.style.color            = isNew ? '#0f6e56' : '';
+  }
+  if (learnHint) {
+    learnHint.style.display = isNew ? 'block' : 'none';
+    learnHint.textContent   = T('newStartHere');
+  }
+
   document.getElementById('welcome-overlay').classList.remove('hidden');
 }
 
@@ -726,6 +761,12 @@ const TENSE_BY_LEVEL = {
   C2: ['present', 'passé composé', 'imparfait', 'futur', 'conditionnel'],
 };
 
+// ── Learn mode constants ───────────────────────────────────────────────────────
+const LEARN_FLASH_DURATION = {
+  A1: 4000, A2: 3000, B1: 2500, B2: 2000, C1: 2000, C2: 2000,
+};
+const LEARN_BATCH_SIZE = 5;
+
 // ── State ──────────────────────────────────────────────────────────────────────
 const ROUND_SIZE = 10;
 let mode          = 'vocab';
@@ -750,6 +791,11 @@ let roundMistakes = 0;
 let roundResults  = []; // { left, right, correct }
 
 let soundOn = true;
+
+// ── Learn mode state ───────────────────────────────────────────────────────────
+let learnBatch      = [];
+let learnFlashIndex = 0;
+let learnFlashTimer = null;
 
 // ── Utility ────────────────────────────────────────────────────────────────────
 function shuffle(a) { return [...a].sort(() => Math.random() - 0.5); }
@@ -940,7 +986,7 @@ function applyModeUI() {
   document.getElementById('level-tabs').style.display =
     (mode === 'phrases' || mode === 'conjugation') ? 'none' : 'flex';
   document.getElementById('topic-row').style.display =
-    (mode === 'vocab' || mode === 'gender') ? 'flex' : 'none';
+    (mode === 'vocab' || mode === 'gender' || mode === 'learn') ? 'flex' : 'none';
   document.getElementById('wordrel-filter-row').style.display =
     mode === 'wordrel' ? 'flex' : 'none';
   document.getElementById('grammar-filter-row').style.display =
@@ -954,8 +1000,9 @@ function applyModeUI() {
     mode === 'conjugation' ? 'flex' : 'none';
 
   const modeDescKeys = {
-    vocab: 'instrVocab', gender: 'instrGender', conjugation: 'instrConjugation',
-    phrases: 'instrPhrases', grammar: 'instrGrammar', wordrel: 'instrWordrel',
+    learn: 'instrLearn', vocab: 'instrVocab', gender: 'instrGender',
+    conjugation: 'instrConjugation', phrases: 'instrPhrases',
+    grammar: 'instrGrammar', wordrel: 'instrWordrel',
   };
   document.getElementById('mode-desc').textContent = T(modeDescKeys[mode] || 'instrVocab');
   updateDirectionBtn();
@@ -975,6 +1022,7 @@ function startRound() {
   document.getElementById('phrases-card').style.display = 'none';
   document.getElementById('grammar-card').style.display = 'none';
   document.getElementById('wordrel-card').style.display = 'none';
+  document.getElementById('learn-card').style.display   = 'none';
 
   roundMistakes = 0;
   roundResults  = [];
@@ -998,6 +1046,12 @@ function startRound() {
   if (mode === 'wordrel') {
     document.getElementById('wordrel-card').style.display = 'flex';
     startWordRelRound();
+    return;
+  }
+
+  if (mode === 'learn') {
+    document.getElementById('learn-card').style.display = 'flex';
+    startLearnRound();
     return;
   }
 
@@ -1273,6 +1327,7 @@ function showRoundEnd() {
 }
 
 function nextRound() {
+  if (learnFlashTimer) { clearTimeout(learnFlashTimer); learnFlashTimer = null; }
   document.getElementById('round-end').style.display = 'none';
   startRound();
 }
@@ -1603,6 +1658,78 @@ function advanceWordRel() {
   }
 }
 
+// ── Learn mode ────────────────────────────────────────────────────────────────
+function startLearnRound() {
+  resetSessionIfExhausted(VOCAB);
+  const wrongItems = getWrongQueueFromPool(VOCAB).slice(0, LEARN_BATCH_SIZE);
+  const wrongIds   = new Set(wrongItems.map(w => w.id));
+  const fresh      = pickWordsMixed(VOCAB, LEARN_BATCH_SIZE - wrongItems.length,
+                       new Set([...sessionCorrectIds, ...wrongIds]), true);
+  learnBatch      = shuffle([...wrongItems, ...fresh]).slice(0, LEARN_BATCH_SIZE);
+  learnFlashIndex = 0;
+  roundMistakes   = 0;
+  roundResults    = [];
+
+  document.getElementById('learn-card').style.display = 'flex';
+  document.getElementById('learn-phase-label').textContent = T('learnPhase1');
+  startLearnFlash();
+}
+
+function startLearnFlash() {
+  if (learnFlashIndex >= learnBatch.length) {
+    startLearnMatch();
+    return;
+  }
+
+  const word   = learnBatch[learnFlashIndex];
+  const native = getTranslation(word);
+  const french = word.fr;
+
+  document.getElementById('learn-native-word').textContent = native;
+  document.getElementById('learn-french-word').textContent = french;
+  document.getElementById('learn-progress').textContent    = (learnFlashIndex + 1) + ' / ' + LEARN_BATCH_SIZE;
+
+  const pct = Math.round((learnFlashIndex + 1) / LEARN_BATCH_SIZE * 100);
+  document.getElementById('prog').style.width = pct + '%';
+
+  speak(french, true);
+
+  const duration = LEARN_FLASH_DURATION[level] || LEARN_FLASH_DURATION.A1;
+  learnFlashTimer = setTimeout(() => {
+    learnFlashIndex++;
+    startLearnFlash();
+  }, duration);
+}
+
+function startLearnMatch() {
+  document.getElementById('learn-card').style.display = 'none';
+
+  pairs = learnBatch.map(w => ({
+    left: w.fr, right: getTranslation(w), id: w.id, item: w, frWord: w.fr,
+  }));
+
+  matched      = Array(pairs.length).fill(false);
+  selSide      = null; selIdx = null; wrongTimer = null;
+  roundResults = [];
+  roundMistakes = 0;
+
+  document.getElementById('fb').style.display        = '';
+  document.getElementById('col-labels').style.display = '';
+  document.getElementById('arena').style.display      = '';
+  setFb(T('learnPhase2'), '');
+  updateColLabels();
+
+  leftItems  = pairs.map((_, i) => i);
+  rightItems = shuffle(pairs.map((_, i) => i));
+
+  const gl = document.getElementById('grid-l');
+  const gr = document.getElementById('grid-r');
+  gl.style.gridTemplateColumns = 'repeat(1,1fr)';
+  gr.style.gridTemplateColumns = 'repeat(1,1fr)';
+  gl.innerHTML = leftItems.map( (pi, slot) => cellHTML('l', slot, pi)).join('');
+  gr.innerHTML = rightItems.map((pi, slot) => cellHTML('r', slot, pi)).join('');
+}
+
 // ── Sound ──────────────────────────────────────────────────────────────────────
 // Voice preferences for each language
 const VOICE_PREFERENCES = {
@@ -1715,8 +1842,9 @@ function applyTranslations() {
 
   // Mode description
   const modeDescKeys = {
-    vocab: 'instrVocab', gender: 'instrGender', conjugation: 'instrConjugation',
-    phrases: 'instrPhrases', grammar: 'instrGrammar', wordrel: 'instrWordrel',
+    learn: 'instrLearn', vocab: 'instrVocab', gender: 'instrGender',
+    conjugation: 'instrConjugation', phrases: 'instrPhrases',
+    grammar: 'instrGrammar', wordrel: 'instrWordrel',
   };
   document.getElementById('mode-desc').textContent = T(modeDescKeys[mode] || 'instrVocab');
 
@@ -1797,7 +1925,7 @@ function applyTranslations() {
   // Help panel: update text for current mode if panel exists
   const helpPanelEl = document.getElementById('help-panel');
   if (helpPanelEl) {
-    const helpKeys = { vocab: 'helpVocab', gender: 'helpGender', wordrel: 'helpWordrel', conjugation: 'helpConjugation', grammar: 'helpGrammar', phrases: 'helpPhrases' };
+    const helpKeys = { learn: 'helpLearn', vocab: 'helpVocab', gender: 'helpGender', wordrel: 'helpWordrel', conjugation: 'helpConjugation', grammar: 'helpGrammar', phrases: 'helpPhrases' };
     helpPanelEl.textContent = T(helpKeys[mode] || 'helpVocab');
   }
 }
@@ -2198,7 +2326,7 @@ function ensureHelpBtn() {
     helpContainer.appendChild(panel);
   }
 
-  const helpKeys = { vocab: 'helpVocab', gender: 'helpGender', wordrel: 'helpWordrel', conjugation: 'helpConjugation', grammar: 'helpGrammar', phrases: 'helpPhrases' };
+  const helpKeys = { learn: 'helpLearn', vocab: 'helpVocab', gender: 'helpGender', wordrel: 'helpWordrel', conjugation: 'helpConjugation', grammar: 'helpGrammar', phrases: 'helpPhrases' };
   const panel = document.getElementById('help-panel');
   const btn   = document.getElementById('help-btn');
   if (panel) { panel.textContent = T(helpKeys[mode] || 'helpVocab'); panel.style.display = 'none'; }

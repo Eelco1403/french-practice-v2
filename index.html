@@ -34,6 +34,7 @@
   <div class="mode-groups" id="mode-tabs">
     <div class="mode-group">
       <span class="mode-group-label" id="group-words-label">Words</span>
+      <button class="mode-tab" data-mode="learn" onclick="setMode('learn',this)">Learn</button>
       <button class="mode-tab active" data-mode="vocab" onclick="setMode('vocab',this)">Vocabulary</button>
       <button class="mode-tab" data-mode="gender" onclick="setMode('gender',this)">Gender</button>
       <button class="mode-tab" data-mode="wordrel" onclick="setMode('wordrel',this)">Word Relationships</button>
@@ -192,6 +193,17 @@
       <div class="phrase-feedback" id="wordrel-feedback"></div>
     </div>
 
+    <!-- Learn card -->
+    <div class="learn-card mode-card" id="learn-card" style="display:none">
+      <div class="learn-phase-label" id="learn-phase-label"></div>
+      <div class="learn-flash-display" id="learn-flash-display">
+        <div class="learn-native-word" id="learn-native-word"></div>
+        <div class="learn-arrow">→</div>
+        <div class="learn-french-word" id="learn-french-word"></div>
+      </div>
+      <div class="learn-progress" id="learn-progress"></div>
+    </div>
+
   </div>
 
   <!-- Round summary (covers all of Zone 3) -->
@@ -281,6 +293,10 @@
     <div id="welcome-choose" class="welcome-choose">
       <p class="welcome-prompt" id="welcome-prompt">What would you like to practice?</p>
       <div class="welcome-modes">
+        <div id="learn-welcome-cell" style="display:flex;flex-direction:column;align-items:stretch;gap:4px">
+          <button class="welcome-mode-btn" id="learn-welcome-btn" onclick="startFromWelcome('learn')">Learn</button>
+          <div id="learn-welcome-hint" style="display:none;text-align:center;font-size:11px;color:#1D9E75;font-weight:500"></div>
+        </div>
         <button class="welcome-mode-btn" onclick="startFromWelcome('vocab')">Vocabulary</button>
         <button class="welcome-mode-btn" onclick="startFromWelcome('gender')">Gender</button>
         <button class="welcome-mode-btn" onclick="startFromWelcome('wordrel')">Word Relationships</button>
